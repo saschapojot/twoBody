@@ -18,3 +18,17 @@ def avgPos(psiq):
     :return: average position
     '''
     return psiq.T.conj().dot(xMat).dot(psiq)
+
+
+def reNormalization(vec):
+    '''
+    normalize vector
+    :param vec: input vector
+    :return:
+    '''
+    tmp2 = 0
+    for elem in vec:
+        tmp2 += np.abs(elem) ** 2
+    tmp = np.sqrt(tmp2)
+    vec /= tmp
+    return vec
