@@ -1,6 +1,18 @@
 from consts import *
 
+def H1Mat():
+    onSite2 = [[U / 2, j, j] for j in range(0, N)]
+    onSite1 = [[-U / 2, j] for j in range(0, N)]
+    tiltedPot = [[omegaF * j, j] for j in range(0, N)]
+    staticPart = [["n", onSite1], ["n", tiltedPot], ["nn", onSite2]]
 
+    H1Tmp = hamiltonian(staticPart, [], basis=basisAll, dtype=np.complex128, check_symm=False,check_herm=False)
+    H1MatTmp = H1Tmp.toarray()
+    return H1MatTmp
+
+
+H1MatVal = H1Mat()
+U1 = slin.expm(-1j * dt / 2 * H1MatVal)
 def delta(t):
     return d0 * np.sin(omega * t + phi0)
 
