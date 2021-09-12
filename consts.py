@@ -7,16 +7,19 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from quspin.basis import boson_basis_1d
 from quspin.operators import hamiltonian
-
-L = 80
+from quspin.tools.block_tools import block_diag_hamiltonian
+import copy
+L = 31
 N = 2 * L
 J = 1
 
+#delta_0
 d0 = 0.8
 
+#Delta_0
 D0 = 2
 
-U = 30
+U = 10
 omegaF =0.005
 omega = 0.003
 
@@ -31,11 +34,11 @@ tTot = 3 * T
 Q =500
 dt = tTot / Q
 
+sgm=5
 # i0=basisAll.index("0"*(L-1)+"2"+"0"*L)
-i0=basisAll.index("0"*(L-2)+"11"+"0"*L)
-psi0=np.zeros(basisAll.Ns,dtype=np.complex128)
-psi0[i0]=1
-
+# # i0=basisAll.index("0"*(L-2)+"11"+"0"*L)
+# psi0=np.zeros(basisAll.Ns,dtype=np.complex128)
+# psi0[i0]=1
 
 
 
@@ -60,25 +63,10 @@ posVals=[[j,j]for j in range(0,N)]
 posList=[["n",posVals]]
 xOpr=hamiltonian(posList,[],basis=basisAll,dtype=np.complex128)
 xMat=xOpr.toarray()/2
-
+# E,V=np.linalg.eigh(xMat)
+# print(V)
+# print(E)
 #construct gaussian wavepacket
 
 
-
-sgm=10
-
-Ex,Vx=xOpr.eigh()
-gauss0=np.zeros(basisAll.Ns,dtype=np.complex128)
-xRowN,xColN=Vx.shape
-xc=xColN/2
-def gaussShape(j):
-    return np.exp(-(j-xc)**2/sgm**2)
-
-for j in range(0,xColN):
-    gauss0+=gaussShape(j)*Vx[:,j]
-
-norm2Tmp=0
-for elem in gauss0:
-    norm2Tmp+=np.abs(elem)**2
-gauss0/=np.sqrt(norm2Tmp)
 

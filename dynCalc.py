@@ -20,16 +20,11 @@ H=hamiltonian(staticPart,dynamicPart,static_fmt="csr",dtype=np.complex128,basis=
 tS=datetime.now()
 ###########
 #init vec
-kOrd=0
-kVal=2*np.pi/(N/2)*kOrd
-vec0x=selectInitVecFromBand(kOrd)
-for j in range(0,len(vec0x)):
-    vec0x[j]*=np.exp(1j*j*kVal)*gaussShape(j)
 
 ##########
 # dataAll=H.evolve(psi0,0,tAll,eom="SE",solver_name="dop853",verbose=False,iterate=False,imag_time=False)
 normalizedDataAll=[]
-normalizedDataAll.append(vec0x)
+normalizedDataAll.append(psi0Vec)
 # normalizedDataAll.append(psi0)
 for q in range(0,Q):
     psiCurr=normalizedDataAll[q]
@@ -76,5 +71,5 @@ plt.xticks(xTickVals,xTickLabels)
 plt.xlabel("time/T")
 plt.ylabel("ave position")
 plt.title("initial position = "+str(L)+", pumping = "+str(drift[-1]-drift[0]))
-plt.savefig(outDir+"init"+str(i0)+"L="+str(L)+"omegaF="+str(omegaF)+"omega"+str(omega)+".png")
+plt.savefig(outDir+"L="+str(L)+"omegaF="+str(omegaF)+"omega"+str(omega)+".png")
 plt.close()
