@@ -9,7 +9,9 @@ from quspin.basis import boson_basis_1d
 from quspin.operators import hamiltonian
 from quspin.tools.block_tools import block_diag_hamiltonian
 import copy
-L = 51
+
+#L is odd
+L = 31
 N = 2 * L
 J = 1
 
