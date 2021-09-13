@@ -9,7 +9,7 @@ from quspin.basis import boson_basis_1d
 from quspin.operators import hamiltonian
 from quspin.tools.block_tools import block_diag_hamiltonian
 import copy
-L = 31
+L = 51
 N = 2 * L
 J = 1
 
@@ -34,7 +34,7 @@ tTot = 3 * T
 Q =500
 dt = tTot / Q
 
-sgm=5
+sgm=10
 # i0=basisAll.index("0"*(L-1)+"2"+"0"*L)
 # # i0=basisAll.index("0"*(L-2)+"11"+"0"*L)
 # psi0=np.zeros(basisAll.Ns,dtype=np.complex128)
