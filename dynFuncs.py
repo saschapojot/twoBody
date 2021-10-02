@@ -1,5 +1,22 @@
 from consts import *
 
+def onsiteDrivingSin(t):
+    return np.cos(Omega*t)
+def onsiteDrivingCos(t):
+    return np.sin(Omega*t)
+
+def step2(t):
+    if 1/3*tTot<t<=2/3*tTot:
+        return B1
+    else:
+        return 0
+
+def step3(t):
+    if 2/3*tTot<t<=tTot:
+        return 1j*B2
+    else:
+        return 0
+
 
 def delta(t):
     return d0 * np.sin(omega * t + phi0)

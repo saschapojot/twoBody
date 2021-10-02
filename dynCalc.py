@@ -13,8 +13,17 @@ staticPart=[["n",onSite1],["n",tiltedPot],["nn",onSite2],["+-",hopConst],["-+",h
 hopDynPM=[[(-1)**j,j,(j+1)%N] for j in range(0,N)]
 hopDynMP=[[(-1)**j ,j,(j+1)%N] for j in range(0,N)]
 stgPot=[[(-1)**j,j] for j in range(0,N)]
+onsiteDrivingCoef1=[[A*np.cos(2*np.pi*alpha*j), j] for j in range(0,N)]#onsite driving coefficient
+#quench coefficient
+qHop1PM=[[1,j,(j+1)%N] for j in range(0,N)]
+qHop1MP=[[1,j,(j+1)%N] for j in range(0,N)]
 
-dynamicPart=[["+-",hopDynPM,delta,[]],["-+",hopDynMP,delta,[]],["n",stgPot,Delta,[]]]
+qHop2PM=[[1,j,(j+1)%N] for j in range(0,N)]
+qHop2MP=[[-1,j,(j+1)%N] for j in range(0,N)]
+
+dynamicPart=[["+-",hopDynPM,delta,[]],["-+",hopDynMP,delta,[]],["n",stgPot,Delta,[]],
+             ["+-",qHop1PM,step2,[]],["-+",qHop1MP,step2,[]],
+             ["+-",qHop2PM,step3,[]],["-+",qHop2MP,step3,[]]]
 H=hamiltonian(staticPart,dynamicPart,static_fmt="csr",dtype=np.complex128,basis=basisAll)
 
 tS=datetime.now()

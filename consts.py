@@ -11,7 +11,7 @@ from quspin.tools.block_tools import block_diag_hamiltonian
 import copy
 
 #L is odd
-L = 31
+L = 19
 N = 2 * L
 J = 1
 
@@ -22,21 +22,31 @@ d0 = 0.8
 D0 = 2
 
 U = 10
-omegaF =0.005
-omega = 0.003
 
+omega = 0.003
+omegaF =0.005
 phi0 = 0
 
-
+n0=100
+#driving params
+Omega=n0*omega
+n1=1
+alpha=0
+A=U*5
+#############
+#quench parameters
+B1=3
+B2=5
+########
 basisAll = boson_basis_1d(N, Nb=2)
 
 T = 2 * np.pi / omega
 
-tTot = 3 * T
+tTot =  3*T
 Q =500
 dt = tTot / Q
 
-sgm=10
+sgm=2
 # i0=basisAll.index("0"*(L-1)+"2"+"0"*L)
 # # i0=basisAll.index("0"*(L-2)+"11"+"0"*L)
 # psi0=np.zeros(basisAll.Ns,dtype=np.complex128)
