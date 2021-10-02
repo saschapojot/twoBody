@@ -133,6 +133,9 @@ def idx_to_state(idx):
     return get_state(fock)
 
 
+
+tStart=datetime.now()
+
 N_H = basisAll.Ns
 total_set = []
 for idx in range(N_H):
@@ -152,6 +155,10 @@ for state in total_set:
 
 
 def ortho_basis(k, str_n):
+    "to momentum space"
+    """
+    :return |k,n>
+    """
     new_str = copy.copy(str_n)
     new_state = get_state(str_n)
 
@@ -162,7 +169,7 @@ def ortho_basis(k, str_n):
     return new_state
 
 
-H_m = Hami(J, d0, D0, U)
+H_m = Hami(J, delta(0), Delta(0), U)
 
 
 def H_k(k):
@@ -175,12 +182,42 @@ def H_k(k):
     return H_mat
 
 
+def ortho_to_fock(k,state):
+    '''
+
+    :param k: momentum
+    :param state: vector in momentum space
+    :return: vector in real space
+    '''
+    fock_state=np.zeros(N_H,dtype=complex)
+    for idx in range(0,len(state)):
+        fock_state+=state[idx]*ortho_basis(k,seed_state[idx])
+    return fock_state
+
+def g(k,k0):
+    """
+
+    :param k:
+    :param k0:
+    :return: gaussian factor
+    """
+    return np.exp(-(k - k0) ** 2 *sgm**2)
+j0 = L/2
+
+Ds = int(N_H / L)
+def f(k):
+    '''
+
+    :param k: momentum
+    :return: Gaussian factor
+    '''
+    return np.exp(-k ** 2 * sgm ** 2 + 1j *j0 * k)
 # basis in |n> space
-Br = []
-for stateTmp in seed_state:
-    Br.append(stateTmp)
-    for j in range(1, L):
-        Br.append(translate(Br[-1]))
+# Br = []
+# for stateTmp in seed_state:
+#     Br.append(stateTmp)
+#     for j in range(1, L):
+#         Br.append(translate(Br[-1]))
 
 # k0=0
 # kValsAll=[2*np.pi*(l-L/2)/(2*L) for l in range(0,L)]
@@ -193,38 +230,45 @@ for stateTmp in seed_state:
 #
 # eigenVectors=v[:,idx]
 
+kValsLen=L
+kIndAll = list(range(0, kValsLen))
+kValsAll = [2 * np.pi * (l-kValsLen/2) / (2 * kValsLen) for l in kIndAll]
 
-kIndAll = list(range(0, L))
-kValsAll = [2 * np.pi * (l - L / 2) / (2 * L) for l in kIndAll]
+#all H(k) blocks, each with momentum k
+All_H_k = [H_k(kTmp) for kTmp in kValsAll]# is a list of Ds by Ds matrices
+All_eigen_value=[]# is a list of vectors, each vector contains Ds eigenvalues
+All_eigen_vector=[]#is a list of matrices, each matrix contains Ds eigenvectors
+for idx_k,k in enumerate(kValsAll):
+    print("finish "+str(100*idx_k/L)+"%")
 
-HBlocksAll = [H_k(kTmp) for kTmp in kValsAll]
-# list for eigenvectors with the smallest eigenvalue
-zerothEigVecsAll = []
-for HkTmp in HBlocksAll:
-    wTmp, vTmp = np.linalg.eigh(HkTmp)
-    idxTmp = wTmp.argsort()
-
-    vSortedTmp = vTmp[:, idxTmp]
-    zerothEigVecsAll.append(vSortedTmp[:, 0])
-
-
-j0 = L
+    eigenvaluesTmp, eigenvectorsTmp=np.linalg.eigh(All_H_k[idx_k])
+    idxTmp=eigenvaluesTmp.argsort()[::-1]
+    All_eigen_value.append(eigenvaluesTmp[idxTmp])
+    All_eigen_vector.append(eigenvectorsTmp[:,idxTmp])
 
 
-def f(k):
-    '''
+#gauge smooth
+#loop over band
+for idx_m in range(Ds):
+    #loop over k
+    for idx_s in range(L-1):
+        phase_diff=np.imag(np.log(np.vdot(All_eigen_vector[idx_s][:,idx_m],All_eigen_vector[idx_s+1][:, idx_m])))
+        #update the eigenvector the adjacent phase -> 0
+        All_eigen_vector[idx_s+1][:,idx_m]*=np.exp(-1j*phase_diff)
+    total_diff=np.imag(np.log(np.vdot(All_eigen_vector[0][:,idx_m],All_eigen_vector[-1][:,idx_m])))
+    phase_avg=total_diff/(L-1)
+    for idx_s in range(L-1):
+        All_eigen_vector[idx_s][:,idx_m]*=np.exp(1j*phase_avg*idx_s)
+        # print("idx_s is "+str(idx_s))
 
-    :param k: momentum
-    :return: Gaussian factor
-    '''
-    return np.exp(-k ** 2 * sgm ** 2 + 1j * j0 * k)
+
 
 
 # n0=0
 # uValsAll=eigenVectors[:,n0]
 
-psiInit = []
-Ds = int(N_H / L)
+# psiInit = []
+
 # for b in range(0,Ds):
 #     for j in range(0,L):
 #         sumTmp=0
@@ -233,12 +277,12 @@ Ds = int(N_H / L)
 #         sumTmp*=uValsAll[b]
 #         psiInit.append(sumTmp)
 
-for b in range(0, Ds):
-    for j in range(0, L):
-        sumTmp = 0
-        for a in range(0, L):
-            sumTmp += zerothEigVecsAll[a][b] * f(kValsAll[a]) * np.exp(1j * kValsAll[a] * 2 * j)
-        psiInit.append(sumTmp)
+# for b in range(0, Ds):
+#     for j in range(0, L):
+#         sumTmp = 0
+#         for a in range(0, kValsLen):
+#             sumTmp += zerothEigVecsAll[a][b] * f(kValsAll[a]) * np.exp(1j * kValsAll[a]  *2* j)
+#         psiInit.append(sumTmp)
 
 
 def l2Norm(vec):
@@ -252,27 +296,28 @@ def l2Norm(vec):
         tmp += np.abs(vec[j]) ** 2
     return np.sqrt(tmp)
 
+bandNum=0
+w_state=np.zeros(N_H,dtype=complex)
+for idx_k, k in enumerate(kValsAll):
+    eigen_state=All_eigen_vector[idx_k][:,bandNum]
+    w_state+=ortho_to_fock(k,eigen_state)*np.exp(-1j*2*k*j0)*g(k,0)
 
-# psiInit /= l2Norm(psiInit)
-psi0Vec = np.zeros(len(psiInit), dtype=complex)
-
-for j in range(0, len(psiInit)):
-    stateStrTmp = Br[j]
-    psi0Vec += psiInit[j] * get_state(stateStrTmp)
-psi0Vec/=l2Norm(psi0Vec)
-# plot the density distribution
 for x in range(N):
-    coupling = [[1, x]]
-    static_n = [['n', coupling]]
+    coupling= [[1,x]]
+    static_n = [['n',coupling]]
     exec(f'H_n_{x}_H = hamiltonian(static_n,[], dtype=np.complex128,basis=basisAll)')
     exec(f'H_n_{x} = H_n_{x}_H.toarray()')
 
-density_total = np.zeros(N)
 
+density_total=np.zeros(N)
+w_state/=np.sqrt(w_state.conj().T@w_state)
+psi0Vec=w_state
 for x in range(N):
-    exec(f'density_total[x] = psi0Vec.conj().T @ H_n_{x} @ psi0Vec')
+    exec(f'density_total[x] = w_state.conj().T @ H_n_{x} @ w_state')
 
 plt.figure()
-plt.plot(np.arange(N), np.abs(density_total))
+plt.plot(np.arange(N), density_total)
 plt.savefig("tmp2.png")
-plt.close()
+
+tEnd=datetime.now()
+print(" init time: ",tEnd-tStart)
