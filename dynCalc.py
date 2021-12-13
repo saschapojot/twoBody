@@ -13,7 +13,7 @@ staticPart=[["n",onSite1],["n",tiltedPot],["nn",onSite2],["+-",hopConst],["-+",h
 hopDynPM=[[(-1)**j,j,(j+1)%N] for j in range(0,N)]
 hopDynMP=[[(-1)**j ,j,(j+1)%N] for j in range(0,N)]
 stgPot=[[(-1)**j,j] for j in range(0,N)]
-onsiteDrivingCoef1=[[A*np.cos(2*np.pi*alpha*j), j] for j in range(0,N)]#onsite driving coefficient
+# onsiteDrivingCoef1=[[A*np.cos(2*np.pi*alpha*j), j] for j in range(0,N)]#onsite driving coefficient
 #quench coefficient
 qHop1PM=[[1,j,(j+1)%N] for j in range(0,N)]
 qHop1MP=[[1,j,(j+1)%N] for j in range(0,N)]
@@ -21,9 +21,7 @@ qHop1MP=[[1,j,(j+1)%N] for j in range(0,N)]
 qHop2PM=[[1,j,(j+1)%N] for j in range(0,N)]
 qHop2MP=[[-1,j,(j+1)%N] for j in range(0,N)]
 
-dynamicPart=[["+-",hopDynPM,delta,[]],["-+",hopDynMP,delta,[]],["n",stgPot,Delta,[]],
-             ["+-",qHop1PM,step2,[]],["-+",qHop1MP,step2,[]],
-             ["+-",qHop2PM,step3,[]],["-+",qHop2MP,step3,[]]]
+dynamicPart=[["+-",hopDynPM,delta,[]],["-+",hopDynMP,delta,[]],["n",stgPot,Delta,[]]]
 H=hamiltonian(staticPart,dynamicPart,static_fmt="csr",dtype=np.complex128,basis=basisAll)
 
 tS=datetime.now()
@@ -81,4 +79,15 @@ plt.xlabel("time/T")
 plt.ylabel("ave position")
 plt.title("initial position = "+str(L)+", pumping = "+str(drift[-1]-drift[0]))
 plt.savefig(outDir+"L="+str(L)+"omegaF="+str(omegaF)+"omega"+str(omega)+"sgm"+str(sgm)+".png")
+plt.close()
+
+psiEnd=normalizedDataAll[-1]
+density_total_end=np.zeros(N)
+
+for x in range(N):
+    exec(f'density_total_end[x] = psiEnd.conj().T @ H_n_{x} @ psiEnd')
+
+plt.figure()
+plt.plot(np.arange(N), np.abs(density_total_end))
+plt.savefig("tmp4.png")
 plt.close()
