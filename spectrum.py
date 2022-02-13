@@ -8,7 +8,7 @@ from multiprocessing import Pool
 #script for band and Chern number
 #consts
 alpha=1/3
-T1=4
+T1=2
 J=2.5
 V=2.5
 Omega=2*np.pi/T1
@@ -17,7 +17,7 @@ Omega=2*np.pi/T1
 a=1
 b=1
 T2=T1*b/a
-omegaF=2*np.pi/T2
+omegaF=0#2*np.pi/T2
 T=T1*b#total small time
 Q=100#small time interval number
 dt=T/Q
@@ -44,7 +44,7 @@ def coTranslation(stateStr):
     """
     return stateStr[-q:]+stateStr[:-q]
 
-
+tStart=datetime.now()
 seedStatesAll=[]
 redundantStatesAll=[]
 for stateStrTmp in basisAllInString:
@@ -128,12 +128,16 @@ def UMat(beta):
     for tq in tValsAll[::-1]:
         retU=retU@ssplin.expm(-1j*dt*HCSCMat(tq,beta))
 
-    return retU
+    return [beta,retU]
 
 
+pool0=Pool(threadNum)
+retAll0=pool0.map(UMat,betaValsAll)
+ret0Sorted=sorted(retAll0,key=lambda elem:elem[0])
+# print(ret0Sorted)
 
-UMatsAll=[UMat(betaTmp) for betaTmp in betaValsAll]
-
+# UMatsAll=[UMat(betaTmp) for betaTmp in betaValsAll]
+UMatsAll=[elem[1] for elem in ret0Sorted]
 def reducedFloquetMat(betaNum,phiNum):
     """
 
@@ -208,9 +212,15 @@ plt.title("$T_{1}=$"+str(T1)
 
 
 
-plt.savefig("spectrumT1"+str(T1)+"a"+str(a)+"b"+str(b)+".png")
+plt.savefig("spectrumT1"+str(T1)
+            +"omegaF=0"
+           # +"a"+str(a)+"b"+str(b)
+            +".png")
 # plt.show()
 plt.close()
 
 tableArr=np.array(tableMat)
-np.savetxt("dataSpectrumT1"+str(T1)+"a"+str(a)+"b"+str(b)+".csv",tableArr,delimiter=",",newline="\n")
+np.savetxt("dataSpectrumT1"+str(T1)
+            +"omegaF=0"
+           #+"a"+str(a)+"b"+str(b)
+           +".csv",tableArr,delimiter=",",newline="\n")

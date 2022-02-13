@@ -10,20 +10,20 @@ from multiprocessing import Pool
 #script for obc band
 #consts
 alpha=1/3
-T1=4
+T1=2
 J=2.5
 V=2.5
 Omega=2*np.pi/T1
 
 
-a=6
-b=5
+a=5
+b=2
 T2=T1*b/a
 omegaF=2*np.pi/T2
 T=T1*b#total small time
 Q=100#small time interval number
 dt=T/Q
-U=6.0
+U=30
 tValsAll=[dt*q for q in range(1,Q+1)]
 
 q=3#sublattice number
@@ -212,7 +212,7 @@ for itemTmp in retAll:
 sVal=2
 plt.figure()
 plt.title("$T_{1}=$"+str(T1)
-          #+", $\omega_{F}=0$"
+          # +", $\omega_{F}=0$"
          + ", $T_{1}/T_{2}=$"+str(a)+"/"+str(b)
           )
 
@@ -223,4 +223,7 @@ plt.scatter(pltBetaMid,pltPhaseMid,color="black",marker=".",s=sVal,label="bulk")
 plt.xlabel("$\\beta/\pi$")
 plt.ylabel("eigenphase/\pi")
 plt.legend()
-plt.savefig("obcT1"+str(T1)+"a"+str(a)+"b"+str(b)+".png")
+plt.savefig("obcT1"+str(T1)
+            # +"omegaF=0"
+            +"a"+str(a)+"b"+str(b)+".png"
+             )
