@@ -14,14 +14,14 @@ V=2.5
 Omega=2*np.pi/T1
 
 
-a=6
-b=5
+a=1
+b=1
 T2=T1*b/a
 omegaF=2*np.pi/T2
 T=T1*b#total small time
 Q=100#small time interval number
 dt=T/Q
-U=6.0
+U=30
 tValsAll=[dt*q for q in range(1,Q+1)]
 
 q=3#sublattice number
@@ -34,7 +34,7 @@ phiValsAll=[2*np.pi*l/L for l in range(0,L)]#bloch momentum
 basisAll=boson_basis_1d(N,Nb=2)
 basisAllInString=[basisAll.int_to_state(numTmp,bracket_notation=False) for numTmp in basisAll]
 Ds=int(basisAll.Ns/L)#momentum space dimension=seed states number
-print(Ds)
+
 threadNum=24
 def coTranslation(stateStr):
     """
@@ -130,12 +130,10 @@ def UMat(beta):
 
     return retU
 
-tStart=datetime.now()
-pool0=Pool(threadNum)
-ret0=pool0.map(UMat,betaValsAll)
 
-# UMatsAll=[UMat(betaTmp) for betaTmp in betaValsAll]
-UMatsAll=[elem for elem in ret0]
+
+UMatsAll=[UMat(betaTmp) for betaTmp in betaValsAll]
+
 def reducedFloquetMat(betaNum,phiNum):
     """
 
