@@ -8,24 +8,24 @@ from multiprocessing import Pool
 #script for band and Chern number
 #consts
 alpha=1/3
-T1=2
+T1=4
 J=2.5
 V=2.5
 Omega=2*np.pi/T1
 
 
-a=1
+a=3
 b=1
 T2=T1*b/a
-omegaF=0#2*np.pi/T2
+omegaF=2*np.pi/T2
 T=T1*b#total small time
 Q=100#small time interval number
 dt=T/Q
-U=30
+U=10
 tValsAll=[dt*q for q in range(1,Q+1)]
 
 q=3#sublattice number
-L=11##unit cell number, must be odd
+L=3##unit cell number, must be odd
 N=q*L #total sublattice number
 M=50#beta num
 betaValsAll=[2*np.pi*m/M for m in range(0,M)]#adiabatic parameter
@@ -44,7 +44,7 @@ def coTranslation(stateStr):
     """
     return stateStr[-q:]+stateStr[:-q]
 
-tStart=datetime.now()
+
 seedStatesAll=[]
 redundantStatesAll=[]
 for stateStrTmp in basisAllInString:
@@ -83,7 +83,7 @@ def seedToMomentumEigVec(phi,seedStr):
     for j in range(0,L):
         retVec+=np.exp(1j*phi*j)*strToVec(nextStr)
         nextStr=coTranslation(nextStr)
-    retVec/=np.sqrt(L)
+    # retVec/=np.sqrt(L)
     return retVec
 
 
@@ -130,12 +130,13 @@ def UMat(beta):
 
     return [beta,retU]
 
-
+t2=datetime.now()
 pool0=Pool(threadNum)
 retAll0=pool0.map(UMat,betaValsAll)
 ret0Sorted=sorted(retAll0,key=lambda elem:elem[0])
 # print(ret0Sorted)
-
+t3=datetime.now()
+print("UMat time: ",t3-t2)
 # UMatsAll=[UMat(betaTmp) for betaTmp in betaValsAll]
 UMatsAll=[elem[1] for elem in ret0Sorted]
 def reducedFloquetMat(betaNum,phiNum):
@@ -175,6 +176,7 @@ def sortedEigPhaseAndVec(betaNumAndphiNumPair):
 
 inDatsAll=[[betaNum,phiNum] for betaNum in range(0,M) for phiNum in range(0,L)]
 
+tStart=datetime.now()
 pool1=Pool(threadNum)
 
 retAll=pool1.map(sortedEigPhaseAndVec,inDatsAll)
@@ -206,21 +208,23 @@ ax.set_xlabel("$\\beta/\pi$")
 ax.set_ylabel("$\phi/\pi$")
 ax.set_zlabel("eigenphase$/\pi$")
 plt.title("$T_{1}=$"+str(T1)
-          #+", $\omega_{F}=0$"
+          # +", $\omega_{F}=0$"
           + ", $T_{1}/T_{2}=$"+str(a)+"/"+str(b)
+          +", $U=$"+str(U)
           )
 
 
 
 plt.savefig("spectrumT1"+str(T1)
-            +"omegaF=0"
-           # +"a"+str(a)+"b"+str(b)
-            +".png")
+            # +"omegaF=0"
+           +"a"+str(a)+"b"+str(b)
+            +"U="+str(U)+".png"
+            )
 # plt.show()
 plt.close()
 
 tableArr=np.array(tableMat)
 np.savetxt("dataSpectrumT1"+str(T1)
-            +"omegaF=0"
-           #+"a"+str(a)+"b"+str(b)
-           +".csv",tableArr,delimiter=",",newline="\n")
+            # +"omegaF=0"
+           +"a"+str(a)+"b"+str(b)
+           +"U="+str(U)+".csv",tableArr,delimiter=",",newline="\n")
