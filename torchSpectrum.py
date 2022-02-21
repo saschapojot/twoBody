@@ -9,19 +9,19 @@ import torch
 #script for band and Chern number
 #consts
 alpha=1/3
-T1=4
+T1=8
 J=2.5
 V=2.5
 Omega=2*np.pi/T1
 
-a=4
-b=1
+a=1
+b=2
 T2=T1*b/a
 omegaF=2*np.pi/T2
 T=T1*b#total small time
 Q=100#small time interval number
 dt=T/Q
-U=2
+U=40
 
 tTicksAll=range(0,Q+1)
 tValsAll=[dt*q for q in tTicksAll]
@@ -136,6 +136,7 @@ tHMatEnd=datetime.now()
 print("HMat time: ",tHMatEnd-tHMatStart)
 print("Ns is "+str(basisAll.Ns))
 print("Ds is "+str(Ds))
+print(torch.cuda.is_available())
 tInitStart=datetime.now()
 tensorHMatAll=torch.zeros((Q,M,basisAll.Ns,basisAll.Ns),dtype=torch.cfloat)
 for itemTmp in ret0:
@@ -156,12 +157,16 @@ print("initialization time: ",tInitEnd-tInitStart)
 # tExpEnd=datetime.now()
 #
 # print("exp time: ",tExpEnd-tExpStart)
-tExpStart=datetime.now()
+
 UqTensorMat=torch.zeros((Q,M,basisAll.Ns,basisAll.Ns),dtype=torch.cfloat)
+# UqTensorMat=UqTensorMat.cuda()
+# tensorHMatAll=tensorHMatAll.cuda()
+# torch.cuda.synchronize()
+tExpStart=datetime.now()
 for q in range(0,Q):
     UqTensorMat[q,:,:,:]=tensorHMatAll[q,:,:,:].matrix_exp()
 tExpEnd=datetime.now()
-
+# torch.cuda.synchronize()
 print("exp time: ",tExpEnd-tExpStart)
 
 
@@ -330,7 +335,7 @@ for n in range(0,Ds):
     minDistList.append(min(tmp1,tmp2))
 
 for n in range(0,Ds):
-    vec1=distToBandBelow[:,n][:]#deep copy
+    vec1=distToBandBelow[:,n][:]#deeAssertionError: Torch not compiled with CUDA enabledp copy
     vec2=distToBandAbove[:,n][:]#deep copy
     vec=np.append(vec1,vec2)
     avgDistList.append(np.mean(vec))
@@ -351,3 +356,5 @@ dtFrm.to_csv("torchDistT1"+str(T1)
              +"U="+str(U)
              +".csv", index=False
              )
+
+# print(torch.__version__)
