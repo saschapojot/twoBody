@@ -21,7 +21,7 @@ omegaF=2*np.pi/T2
 T=T1*b#total small time
 Q=100#small time interval number
 dt=T/Q
-U=10
+U=2
 
 tTicksAll=range(0,Q+1)
 tValsAll=[dt*q for q in tTicksAll]
@@ -272,6 +272,7 @@ plt.ylabel("eigenphase$/\pi$")
 plt.savefig("torchT1="+str(T1)
             # +"omegaF=0"
               +"a"+str(a)+"b"+str(b)
+              +"U="+str(U)
     +"phi=0.png")
 plt.close()
 #plot by phi, section beta=0
@@ -300,6 +301,7 @@ plt.ylabel("eigenphase$/\pi$")
 plt.savefig("torchT1="+str(T1)
             # +"omegaF=0"
               +"a"+str(a)+"b"+str(b)
+              +"U="+str(U)
     +"beta=0.png")
 plt.close()
 
