@@ -180,7 +180,7 @@ def generateAB():
     pairsAll = []
     for i in range(start, endPast1 - 1):
 
-        for j in range(i, endPast1):
+        for j in range(start, endPast1):
             if math.gcd(i, j) > 1:
                 continue
             else:
@@ -279,7 +279,7 @@ def calcEig(a,b,T1,U,Q,tensorHMatAll):
 
     # tEigStart = datetime.now()
     eigTensor, vecTensor = torch.linalg.eig(reducedFlMatTensor)
-    tEigEnd = datetime.now()
+    # tEigEnd = datetime.now()
     # print("Eig time: ", tEigEnd - tEigStart)
 
     #eigenphases and sort
@@ -301,7 +301,9 @@ def calcEig(a,b,T1,U,Q,tensorHMatAll):
 
     dataAll = np.array(dataAll)
     ##########data output
-    outDirPrefix="./T1"+str(T1)+"/U"+str(U)+"/"+"a"+str(a)+"b"+str(b)+"/"
+    minVal=min(a,b)
+    maxVal=max(a,b)
+    outDirPrefix="./T1"+str(T1)+"/U"+str(U)+"/"+"a"+str(minVal)+"b"+str(maxVal)+"/"
     Path(outDirPrefix).mkdir(parents=True, exist_ok=True)
     # sort phiNum, such that the first M rows correspond to phi=0
     sortedByPhiDataAll = np.array(sorted(dataAll, key=lambda row: row[1]))
