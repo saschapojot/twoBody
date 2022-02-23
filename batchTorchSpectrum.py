@@ -15,8 +15,8 @@ from pathlib import Path
 alpha=1/3
 J=2.5
 V=2.5
-T1List=[4]
-UList=[10]
+T1List=[1,2,4]
+UList=[0.1,1,10,20,30]
 # Q=100#small time interval number, in this script Q should
 #be determined first by time interval length, which is set to 0.05
 #by default, and max Q=500
@@ -176,19 +176,19 @@ def generateAB():
     :return: coprime a, b pairs <=20
     """
     start = 1
-    endPast1 = 1 + 1
-    paisAll = []
+    endPast1 = 20 + 1
+    pairsAll = []
     for i in range(start, endPast1 - 1):
 
         for j in range(i, endPast1):
             if math.gcd(i, j) > 1:
                 continue
             else:
-                paisAll.append([i, j])
-    return paisAll
+                pairsAll.append([i, j])
+    return pairsAll
 
 
-abList=[[4,1]]#generateAB()
+abList=generateAB()
 
 def genOneHMat(qmdtT1T2U):
     """
