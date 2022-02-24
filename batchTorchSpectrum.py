@@ -8,6 +8,8 @@ from multiprocessing import Pool
 import torch
 import math
 from pathlib import Path
+import gc
+import sys
 #this script calculates band for a range of parameters
 #going to scan  T1, U, a, b
 
@@ -15,8 +17,8 @@ from pathlib import Path
 alpha=1/3
 J=2.5
 V=2.5
-T1List=[1,2,4]
-UList=[0.1,1,10,20,30]
+# T1List=[1,2,4]
+# UList=[0.1,1]#,10,20,30]
 # Q=100#small time interval number, in this script Q should
 #be determined first by time interval length, which is set to 0.05
 #by default, and max Q=500
@@ -113,8 +115,8 @@ def calcConsts(a,b,T1):
     T2=T1*b/a
     T=T1*b
     Q=int(T/stepLength)
-    if Q>500:
-        Q=500
+    if Q>200:
+        Q=200
     dt=T/Q
     return [Q,dt,T,T2]
 
@@ -169,26 +171,26 @@ def reducedFloquetMat(betaNumphiNum):
     return [betaNum,phiNum,retMat]
 
 
-
-def generateAB():
-    """
-
-    :return: coprime a, b pairs <=20
-    """
-    start = 1
-    endPast1 = 20 + 1
-    pairsAll = []
-    for i in range(start, endPast1 - 1):
-
-        for j in range(start, endPast1):
-            if math.gcd(i, j) > 1:
-                continue
-            else:
-                pairsAll.append([i, j])
-    return pairsAll
-
-
-abList=generateAB()
+#
+# def generateAB():
+#     """
+#
+#     :return: coprime a, b pairs <=20
+#     """
+#     start = 1
+#     endPast1 = 4 + 1
+#     pairsAll = []
+#     for i in range(start, endPast1 - 1):
+#
+#         for j in range(start, endPast1):
+#             if math.gcd(i, j) > 1:
+#                 continue
+#             else:
+#                 pairsAll.append([i, j])
+#     return pairsAll
+#
+#
+# abList=generateAB()
 
 def genOneHMat(qmdtT1T2U):
     """
@@ -215,6 +217,8 @@ def genHTensor(T1,T2,T,Q,dt,U):
     pool0=Pool(threadNum)
     # tHMatStart=datetime.now()
     ret0=pool0.map(genOneHMat,inDataAll)
+    pool0.close()
+    pool0.join()
     # tHMatEnd=datetime.now()
     # print("HMat time: ",tHMatEnd-tHMatStart)
     # tInitStart=datetime.now()
@@ -226,17 +230,20 @@ def genHTensor(T1,T2,T,Q,dt,U):
 
     # tInitEnd=datetime.now()
     # print("initialization time: ",tInitEnd-tInitStart)
+    del ret0
+    gc.collect()
     return tensorHMatAll
 
 
 
-def calcEig(a,b,T1,U,Q,tensorHMatAll):
+def  calcEig(a,b,T1,U,Q,tensorHMatAll):
     """
     :param Q: time step num
     :param tensorHMatAll:
     :return: all eigenvals and eigenvecs
     """
     ######matrix exponential
+    #tensor 1
     UqTensorMat = torch.zeros((Q, M, basisAll.Ns, basisAll.Ns), dtype=torch.cfloat)
     # UqTensorMat=UqTensorMat.cuda()
     # tensorHMatAll=tensorHMatAll.cuda()
@@ -264,12 +271,15 @@ def calcEig(a,b,T1,U,Q,tensorHMatAll):
     betaNumAndPhiNumAll = [[m, r] for m in range(0, M) for r in range(0, L)]
     # tReducedFlMatStart = datetime.now()
     ret1 = pool1.map(reducedFloquetMat, betaNumAndPhiNumAll)
+    pool1.close()
+    pool1.join()
     # tReducedFlMatEnd = datetime.now()
     # print("reduced Floquet mat time: ", tReducedFlMatEnd - tReducedFlMatStart)
     #######reduced Floquet matrices eig
     # m=0,1,...,M-1, r=0,1,...,L-1
     # index of matrix is mL+r
     # tInitRedFlStart = datetime.now()
+    #tensor 2
     reducedFlMatTensor = torch.zeros((M * L, Ds, Ds), dtype=torch.cfloat)
     for itemTmp in ret1:
         m, r, rUMat = itemTmp
@@ -417,8 +427,22 @@ def calcEig(a,b,T1,U,Q,tensorHMatAll):
     dtFrm.to_csv(outDirPrefix+"torchDistT1"+str(T1)
              # +"omegaF=0"
              +"a"+str(a)+"b"+str(b)
-             +"U="+str(U)
+             +"U"+str(U)
              +".csv", index=False)
+    print("Q="+str(Q))
+    del UqTensorMat
+
+    # del tensorHMatAll
+    del reducedFlMatTensor
+    del ret1
+    del eigTensor
+    del vecTensor
+    del phasesAll
+    del indsAll
+    gc.collect()
+
+
+
 
 
 
@@ -427,16 +451,29 @@ def calcEig(a,b,T1,U,Q,tensorHMatAll):
 
 
 def run():
-    tAllStart=datetime.now()
-    for T1 in T1List:
-        for U in UList:
-            for onePair in abList:
-                a,b=onePair
-                Q, dt, T, T2 = calcConsts(a, b, T1)
-                tensorHMatAll=genHTensor(T1,T2,T,Q,dt,U)
-                calcEig(a,b,T1,U,Q,tensorHMatAll)
-    tAllEnd=datetime.now()
-    print("total time: ",tAllEnd-tAllStart)
+    # tAllStart=datetime.now()
+    # for T1 in T1List:
+    #     for U in UList:
+    #         for onePair in abList:
+    #             a,b=onePair
+    #             Q, dt, T, T2 = calcConsts(a, b, T1)
+    #             tensorHMatAll=genHTensor(T1,T2,T,Q,dt,U)
+    #             calcEig(a,b,T1,U,Q,tensorHMatAll)
+    #             del tensorHMatAll
+    #             gc.collect()
+    aStr,bStr,T1Str,Ustr=sys.argv[1:]
+    a=float(aStr)
+    b=float(bStr)
+    T1=float(T1Str)
+    U=float(Ustr)
+    Q, dt, T, T2 = calcConsts(a, b, T1)
+    tensorHMatAll=genHTensor(T1,T2,T,Q,dt,U)
+    calcEig(a,b,T1,U,Q,tensorHMatAll)
+    del tensorHMatAll
+    gc.collect()
+
+    # tAllEnd=datetime.now()
+    # print("total time: ",tAllEnd-tAllStart)
 
 
 
