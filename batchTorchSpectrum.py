@@ -145,7 +145,7 @@ def HMat(dataList):
     onSite1 = [[-U / 2, j] for j in range(0, N)]
 
     hListTmp = [["+-", hoppingPM], ["-+", hoppingMP], ["n", onsiteDriving], ["nn", onSite2], ["n", onSite1]]
-    HTmp = hamiltonian(hListTmp, [], dtype=np.complex128, basis=basisAll)
+    HTmp = hamiltonian(hListTmp, [], dtype=np.complex128, basis=basisAll,check_pcon=False,check_symm=False,check_herm=False)
     return [q, m, HTmp.toarray()]
 
 
@@ -299,6 +299,7 @@ def  calcEig(a,b,T1,U,Q,tensorHMatAll):
 
     # data serialization
     dataAll = []
+    # vecDataAll=[]
     for j in range(0, len(phasesAll)):
         r = j % L
         m = int((j - r) / L)
@@ -310,11 +311,88 @@ def  calcEig(a,b,T1,U,Q,tensorHMatAll):
         dataAll.append(oneRow)
 
     dataAll = np.array(dataAll)
-    ##########data output
-    minVal=min(a,b)
-    maxVal=max(a,b)
-    outDirPrefix="./T1"+str(T1)+"/U"+str(U)+"/"+"a"+str(minVal)+"b"+str(maxVal)+"/"
+    # for j in range(0,len(vecTensor)):
+    #     r=j%L
+    #     m=int((j-r)/L)
+    #     oneRow=[m,r]
+    #     indsTmp=indsAll[j]
+    #     vecsTmp=vecTensor[j]
+    #     vecsSorted=[vecsTmp[:,ind] for ind in indsTmp]
+    #     for vec in vecsSorted:
+    #         oneRow.extend(vec)
+    #     vecDataAll.append(oneRow)
+    # vecDataAll=np.array(vecDataAll)
+    #######statistics
+    minVal = min(a, b)
+    maxVal = max(a, b)
+    outDirPrefix = "./T1" + str(T1) + "/U" + str(U) + "/" + "a" + str(minVal) + "b" + str(maxVal) + "/"
     Path(outDirPrefix).mkdir(parents=True, exist_ok=True)
+    usablePath = ".usable/T1" + str(T1) + "/U" + str(U) + "/" + "a" + str(minVal) + "b" + str(maxVal) + "/"
+    phaseTable = dataAll[:, 2:]
+    # col of distToBandBelow is dist of a band to the band below
+    distToBandBelow = np.zeros(phaseTable.shape, dtype=float)
+    for n in range(0, Ds):
+        distTmp = np.abs(phaseTable[:, n] - phaseTable[:, (n - 1) % Ds])
+        distToBandBelow[:, n] = distTmp[:]  # deep copy
+    # mod 2
+    for n in range(0, Ds):
+        distToBandBelow[:, n] = distToBandBelow[:, n] % 2
+
+    # col of distToBandAbove is dist of a band to the band above
+    distToBandAbove = np.zeros(phaseTable.shape, dtype=float)
+    for n in range(0, Ds):
+        distToBandAbove[:, n] = distToBandBelow[:, (n + 1) % Ds][:]  # deep copy
+
+    # staticstics of dists
+    minDistList = []
+    avgDistList = []
+    for n in range(0, Ds):
+        tmp1 = min(distToBandBelow[:, n])
+        tmp2 = min(distToBandAbove[:, n])
+        minDistList.append(min(tmp1, tmp2))
+
+    for n in range(0, Ds):
+        vec1 = distToBandBelow[:, n][:]
+        vec2 = distToBandAbove[:, n][:]  # deep copy
+        vec = np.append(vec1, vec2)
+        avgDistList.append(np.mean(vec))
+
+    # sort by descending order of minDistList
+    indsMinDist = np.argsort(minDistList)[::-1]  # col 0 of output table
+    # col 1 of output table
+    sortedByMinDist_MinDist1 = [minDistList[ind] for ind in indsMinDist]
+    # col 2 of output table
+    sortedByMinDist_AvgDist2 = [avgDistList[ind] for ind in indsMinDist]
+    # sort by descending order pf avgDistList
+    indsAvgDist = np.argsort(avgDistList)[::-1]  # col 3 of output table
+    # col4 of output table
+    sortedByAvgDist_MinDist4 = [minDistList[ind] for ind in indsAvgDist]
+    # col 5 of output table
+    sortedByAvgDist_AgvDist5 = [avgDistList[ind] for ind in indsAvgDist]
+
+    elem0=sortedByMinDist_MinDist1[0]
+    if elem0>=0.01:
+        Path(usablePath).mkdir(parents=True, exist_ok=True)
+
+    dataOut = np.array([indsMinDist, sortedByMinDist_MinDist1, sortedByMinDist_AvgDist2,
+                        indsAvgDist, sortedByAvgDist_MinDist4, sortedByAvgDist_AgvDist5]).T
+
+    dtFrm = pd.DataFrame(data=dataOut, columns=["indsMinDist", "minDist/pi", "avgDist/pi",
+                                                "indsAvgDist", "minDist/pi", "avgDist/pi"])
+    dtFrm.to_csv(outDirPrefix + "torchDistT1" + str(T1)
+                 # +"omegaF=0"
+                 + "a" + str(a) + "b" + str(b)
+                 + "U" + str(U)
+                 + ".csv", index=False)
+    if elem0>=0.01:
+        dtFrm.to_csv(usablePath+"torchDistT1" + str(T1)
+                 # +"omegaF=0"
+                 + "a" + str(a) + "b" + str(b)
+                 + "U" + str(U)
+                 + ".csv", index=False)
+    print("Q=" + str(Q))
+
+    ##########data output
     # sort phiNum, such that the first M rows correspond to phi=0
     sortedByPhiDataAll = np.array(sorted(dataAll, key=lambda row: row[1]))
     # plt by beta, section phi=0
@@ -340,6 +418,12 @@ def  calcEig(a,b,T1,U,Q,tensorHMatAll):
     plt.xlabel("$\\beta/\pi$")
     plt.ylabel("eigenphase$/\pi$")
     plt.savefig(outDirPrefix+"torchT1" + str(T1)
+                # +"omegaF=0"
+                + "a" + str(a) + "b" + str(b)
+                + "U" + str(U)
+                + "phi0.png")
+    if elem0>=0.01:
+        plt.savefig(usablePath+"torchT1" + str(T1)
                 # +"omegaF=0"
                 + "a" + str(a) + "b" + str(b)
                 + "U" + str(U)
@@ -374,63 +458,69 @@ def  calcEig(a,b,T1,U,Q,tensorHMatAll):
                 + "a" + str(a) + "b" + str(b)
                 + "U" + str(U)
                 + "beta0.png")
+    if elem0>=0.01:
+        plt.savefig(usablePath+"torchT1" + str(T1)
+                # +"omegaF=0"
+                + "a" + str(a) + "b" + str(b)
+                + "U" + str(U)
+                + "beta0.png")
     plt.close()
 
-    #######statistics
-    phaseTable = dataAll[:, 2:]
-    # col of distToBandBelow is dist of a band to the band below
-    distToBandBelow = np.zeros(phaseTable.shape, dtype=float)
-    for n in range(0, Ds):
-        distTmp = np.abs(phaseTable[:, n] - phaseTable[:, (n - 1) % Ds])
-        distToBandBelow[:, n] = distTmp[:]  # deep copy
-    # mod 2
-    for n in range(0, Ds):
-        distToBandBelow[:, n] = distToBandBelow[:, n] % 2
-
-    # col of distToBandAbove is dist of a band to the band above
-    distToBandAbove = np.zeros(phaseTable.shape, dtype=float)
-    for n in range(0, Ds):
-        distToBandAbove[:, n] = distToBandBelow[:, (n + 1) % Ds][:]  # deep copy
-
-    # staticstics of dists
-    minDistList = []
-    avgDistList = []
-    for n in range(0, Ds):
-        tmp1 = min(distToBandBelow[:, n])
-        tmp2 = min(distToBandAbove[:, n])
-        minDistList.append(min(tmp1, tmp2))
-
-    for n in range(0, Ds):
-        vec1 = distToBandBelow[:, n][:]
-        vec2 = distToBandAbove[:, n][:]  # deep copy
-        vec = np.append(vec1, vec2)
-        avgDistList.append(np.mean(vec))
-
-    # sort by descending order of minDistList
-    indsMinDist = np.argsort(minDistList)[::-1]#col 0 of output table
-    #col 1 of output table
-    sortedByMinDist_MinDist1 = [minDistList[ind] for ind in indsMinDist]
-    #col 2 of output table
-    sortedByMinDist_AvgDist2 = [avgDistList[ind] for ind in indsMinDist]
-    #sort by descending order pf avgDistList
-    indsAvgDist=np.argsort(avgDistList)[::-1]#col 3 of output table
-    # col4 of output table
-    sortedByAvgDist_MinDist4=[minDistList[ind] for ind in indsAvgDist]
-    #col 5 of output table
-    sortedByAvgDist_AgvDist5=[avgDistList[ind] for ind in indsAvgDist]
-
-    dataOut=np.array([indsMinDist,sortedByMinDist_MinDist1,sortedByMinDist_AvgDist2,
-                      indsAvgDist,sortedByAvgDist_MinDist4,sortedByAvgDist_AgvDist5]).T
-
-    dtFrm=pd.DataFrame(data=dataOut,columns=["indsMinDist","minDist/pi","avgDist/pi",
-                                             "indsAvgDist","minDist/pi","avgDist/pi"])
-    dtFrm.to_csv(outDirPrefix+"torchDistT1"+str(T1)
-             # +"omegaF=0"
-             +"a"+str(a)+"b"+str(b)
-             +"U"+str(U)
-             +".csv", index=False)
-    print("Q="+str(Q))
-    del UqTensorMat
+    # #######statistics
+    # phaseTable = dataAll[:, 2:]
+    # # col of distToBandBelow is dist of a band to the band below
+    # distToBandBelow = np.zeros(phaseTable.shape, dtype=float)
+    # for n in range(0, Ds):
+    #     distTmp = np.abs(phaseTable[:, n] - phaseTable[:, (n - 1) % Ds])
+    #     distToBandBelow[:, n] = distTmp[:]  # deep copy
+    # # mod 2
+    # for n in range(0, Ds):
+    #     distToBandBelow[:, n] = distToBandBelow[:, n] % 2
+    #
+    # # col of distToBandAbove is dist of a band to the band above
+    # distToBandAbove = np.zeros(phaseTable.shape, dtype=float)
+    # for n in range(0, Ds):
+    #     distToBandAbove[:, n] = distToBandBelow[:, (n + 1) % Ds][:]  # deep copy
+    #
+    # # staticstics of dists
+    # minDistList = []
+    # avgDistList = []
+    # for n in range(0, Ds):
+    #     tmp1 = min(distToBandBelow[:, n])
+    #     tmp2 = min(distToBandAbove[:, n])
+    #     minDistList.append(min(tmp1, tmp2))
+    #
+    # for n in range(0, Ds):
+    #     vec1 = distToBandBelow[:, n][:]
+    #     vec2 = distToBandAbove[:, n][:]  # deep copy
+    #     vec = np.append(vec1, vec2)
+    #     avgDistList.append(np.mean(vec))
+    #
+    # # sort by descending order of minDistList
+    # indsMinDist = np.argsort(minDistList)[::-1]#col 0 of output table
+    # #col 1 of output table
+    # sortedByMinDist_MinDist1 = [minDistList[ind] for ind in indsMinDist]
+    # #col 2 of output table
+    # sortedByMinDist_AvgDist2 = [avgDistList[ind] for ind in indsMinDist]
+    # #sort by descending order pf avgDistList
+    # indsAvgDist=np.argsort(avgDistList)[::-1]#col 3 of output table
+    # # col4 of output table
+    # sortedByAvgDist_MinDist4=[minDistList[ind] for ind in indsAvgDist]
+    # #col 5 of output table
+    # sortedByAvgDist_AgvDist5=[avgDistList[ind] for ind in indsAvgDist]
+    #
+    # dataOut=np.array([indsMinDist,sortedByMinDist_MinDist1,sortedByMinDist_AvgDist2,
+    #                   indsAvgDist,sortedByAvgDist_MinDist4,sortedByAvgDist_AgvDist5]).T
+    #
+    # dtFrm=pd.DataFrame(data=dataOut,columns=["indsMinDist","minDist/pi","avgDist/pi",
+    #                                          "indsAvgDist","minDist/pi","avgDist/pi"])
+    # dtFrm.to_csv(outDirPrefix+"torchDistT1"+str(T1)
+    #          # +"omegaF=0"
+    #          +"a"+str(a)+"b"+str(b)
+    #          +"U"+str(U)
+    #          +".csv", index=False)
+    # print("Q="+str(Q))
+    #
 
     # del tensorHMatAll
     del reducedFlMatTensor
@@ -440,6 +530,7 @@ def  calcEig(a,b,T1,U,Q,tensorHMatAll):
     del phasesAll
     del indsAll
     gc.collect()
+    return
 
 
 
@@ -462,8 +553,8 @@ def run():
     #             del tensorHMatAll
     #             gc.collect()
     aStr,bStr,T1Str,Ustr=sys.argv[1:]
-    a=float(aStr)
-    b=float(bStr)
+    a=int(aStr)
+    b=int(bStr)
     T1=float(T1Str)
     U=float(Ustr)
     Q, dt, T, T2 = calcConsts(a, b, T1)
@@ -471,6 +562,7 @@ def run():
     calcEig(a,b,T1,U,Q,tensorHMatAll)
     del tensorHMatAll
     gc.collect()
+    return
 
     # tAllEnd=datetime.now()
     # print("total time: ",tAllEnd-tAllStart)
