@@ -65,7 +65,8 @@ basisAll=boson_basis_1d(N,Nb=2)
 basisAllInString=[basisAll.int_to_state(numTmp,bracket_notation=False) for numTmp in basisAll]
 Ds=int(basisAll.Ns/L)#momentum space dimension=seed states number
 
-print("M="+str(M)+", L="+str(L)+", Ns="+str(basisAll.Ns))
+# print("M="+str(M)+", L="+str(L)+", Ns="+str(basisAll.Ns))
+#read vec from csv file
 bandNum=0
 vecTab=[]
 for index, row in inDat.iterrows():
@@ -115,7 +116,7 @@ def strToVec(stateStr):
     psi[i0]=1
     return psi
 
-
+#construct wannier state
 R=int(L/2)
 ws=np.zeros(basisAll.Ns,dtype=complex)
 for a in range(0,L):
@@ -177,3 +178,82 @@ for m in range(0,M):
                                  *np.vdot(vecFromBandTensor[m,(r+1)%L,:],vecFromBandTensor[m,r,:]))
 chNumFromBand/=(2*np.pi)
 print("Chern number of band "+str(bandNum)+" is "+str(chNumFromBand))
+
+#####construct new Hamiltonian
+newL=41
+newN=subLatNum*newL
+newBasisAll=boson_basis_1d(newN,Nb=2)
+newBasisAllInString=[newBasisAll.int_to_state(numTmp,bracket_notation=False) for numTmp in newBasisAll]
+
+extraSitesOneSide=int((newN-N)/2)
+leftExtraLength=extraSitesOneSide
+rightExtraLength=extraSitesOneSide
+
+def truncateStringFromNewBasis(newBasisStr):
+    """
+
+    :param newBasisStr: truncate string from the left and right
+    :return:
+    """
+    return newBasisStr[leftExtraLength:-rightExtraLength]
+
+
+def ifExtendedBasis(newBasisStr, oldBasisStr):
+    """
+
+    :param newBasisStr: a basis string in new basis(longer)
+    :param oldBasisStr: a basis string in old basis(shorter)
+    :return: whether the truncated new basis == old basis, i.e. whether the new basis is an extension of
+    the old basis
+    """
+    truncatedNew=truncateStringFromNewBasis(newBasisStr)
+    if truncatedNew==oldBasisStr:
+        return 1
+    else :
+        return 0
+
+
+def newWannierVec():
+    newWS=np.zeros(newBasisAll.Ns,dtype=complex)
+    for oldStr in basisAllInString:
+        for newStr in newBasisAllInString:
+            if ifExtendedBasis(newStr,oldStr)==0:
+                continue
+            else:
+                jOld=basisAll.index(oldStr)
+                jNew=newBasisAll.index(newStr)
+                vecTmp=np.zeros(newBasisAll.Ns,dtype=complex)
+                vecTmp[jNew]=1
+                newWS+=ws[jOld]*vecTmp
+    return newWS
+
+
+###################new magnitude on every site
+# newSubLatOpList=[]
+# for j in range(0,newN):
+#     listTmp = [[1, j]]
+#     staticTmp = [["n", listTmp]]
+#     opTmp = hamiltonian(staticTmp, [], dtype=np.complex128, basis=newBasisAll)
+#     arrTmp = opTmp.tocsc()
+#     newSubLatOpList.append(arrTmp)
+#
+# def newOnSiteMagnitude(vec):
+#     """
+#
+#     :param vec: full vec of length newN
+#     :return:
+#     """
+#     mag=[]
+#     for arrTmp in newSubLatOpList:
+#         xTmp=arrTmp.dot(vec)
+#         yTmp=vec.conj().T.dot(xTmp)
+#         mag.append(np.real(yTmp))
+#     return mag
+#
+#
+# mag=newOnSiteMagnitude(newWannierVec())
+# plt.figure()
+# plt.plot(range(0,newN),mag,color="black")
+# plt.savefig("newws.png")
+
+############################################
