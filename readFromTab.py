@@ -4,17 +4,18 @@ from quspin.operators import hamiltonian
 from quspin.basis import boson_basis_1d
 from datetime import datetime
 import pandas as pd
-from multiprocessing import Pool
-import torch
-import math
-from pathlib import Path
+
 
 #this script verifies if a wannier state can be constructed, and calculated Chern  number
+#then it calculates pumping
 a=2
 b=1
 T1=1.0
 U=0.1
-
+Omega=2*np.pi/T1
+T2=T1*b/a
+omegaF=2*np.pi/T2
+T=T1*b
 #consts
 alpha=1/3
 J=2.5
@@ -157,7 +158,8 @@ ws/=np.linalg.norm(ws,ord=2)
 #
 # plt.figure()
 # plt.plot(range(0,N),mag,color="black")
-# plt.savefig("ws.png")
+# plt.savefig(dirPrefix+"ws.png")
+# plt.close()
 #########################################
 ###################calculates chern number
 #construct a tensor of vectors
@@ -229,31 +231,121 @@ def newWannierVec():
 
 
 ###################new magnitude on every site
-# newSubLatOpList=[]
-# for j in range(0,newN):
-#     listTmp = [[1, j]]
-#     staticTmp = [["n", listTmp]]
-#     opTmp = hamiltonian(staticTmp, [], dtype=np.complex128, basis=newBasisAll)
-#     arrTmp = opTmp.tocsc()
-#     newSubLatOpList.append(arrTmp)
-#
-# def newOnSiteMagnitude(vec):
-#     """
-#
-#     :param vec: full vec of length newN
-#     :return:
-#     """
-#     mag=[]
-#     for arrTmp in newSubLatOpList:
-#         xTmp=arrTmp.dot(vec)
-#         yTmp=vec.conj().T.dot(xTmp)
-#         mag.append(np.real(yTmp))
-#     return mag
-#
-#
-# mag=newOnSiteMagnitude(newWannierVec())
-# plt.figure()
-# plt.plot(range(0,newN),mag,color="black")
-# plt.savefig("newws.png")
+newSubLatOpList=[]
+for j in range(0,newN):
+    listTmp = [[1, j]]
+    staticTmp = [["n", listTmp]]
+    opTmp = hamiltonian(staticTmp, [], dtype=np.complex128, basis=newBasisAll)
+    arrTmp = opTmp.tocsc()
+    newSubLatOpList.append(arrTmp)
 
+def newOnSiteMagnitude(vec):
+    """
+
+    :param vec: full vec of length newN
+    :return:
+    """
+    mag=[]
+    for arrTmp in newSubLatOpList:
+        xTmp=arrTmp.dot(vec)
+        yTmp=vec.conj().T.dot(xTmp)
+        mag.append(np.real(yTmp))
+    return mag
+
+newWSVec=newWannierVec()
+magInit=newOnSiteMagnitude(newWSVec)
+plt.figure()
+plt.plot(range(0,newN),magInit,color="black")
+plt.savefig(dirPrefix+"newws.png")
+plt.close()
 ############################################
+
+newPosVals=[[j,j]for j in range(0,newN)]
+newPosList=[["n",newPosVals]]
+newXOpr=hamiltonian(newPosList,[],basis=newBasisAll,dtype=np.complex128)
+newXMat=newXOpr.tocsc()/3
+
+def avgPos(vec):
+    """
+
+    :param vec:
+    :return: avg position in lattice number
+    """
+    xTmp=newXMat.dot(vec)
+    return np.real(vec.conj().T.dot(xTmp))
+
+
+#construct real space Hamiltonian for evolution
+
+#static part
+
+onSite2=[[U/2,m,m] for m in range(0,newN)]
+onSite1=[[-U/2,m] for m in range(0,newN)]
+hoppingCoef=[[J/2,m,(m+1)%newN] for m in range(0,newN)]#same for +- and -+
+onSiteLin=[[omegaF*m,m] for m in range(0,newN)]
+staticPart=[["+-",hoppingCoef],["-+",hoppingCoef],["nn",onSite2],["n",onSite1],["n",onSiteLin]]
+
+#dynamical part
+def driving(t):
+    return np.cos(Omega*t)
+
+
+MBeta=5000
+betaValsAll=[2*np.pi*m/MBeta for m in range(0,MBeta)]
+dataAll=[newWSVec]
+tEvStart=datetime.now()
+for beta in betaValsAll[:1]:
+    drivinfCoefs=[[V*np.cos(2*np.pi*alpha*m-beta),m] for m in range(0,newN)]
+    dynPart=[["n",drivinfCoefs,driving,[]]]
+    HTmp=hamiltonian(staticPart,dynPart,static_fmt="csr",dtype=np.complex128,basis=newBasisAll,check_herm=False,check_symm=False,check_pcon=False)
+    psiCurr=dataAll[-1]
+    tStart=0
+    tEndList=[T]
+    psiNext=HTmp.evolve(psiCurr,tStart,tEndList,eom="SE",solver_name="dop853",verbose=False,iterate=False,imag_time=False)[:,0]
+    dataAll.append(psiNext)
+
+tEvEnd=datetime.now()
+print("evolution time :", tEvEnd-tEvStart)
+
+#after evolution plot final wavepacket
+psiLast=dataAll[-1]
+magLast=newOnSiteMagnitude(psiLast)
+plt.figure()
+plt.plot(range(0,newN),magLast,color="black")
+plt.savefig(dirPrefix+"last.png")
+plt.close()
+
+#calculates drift
+posAll=[]
+for vec in dataAll:
+    posAll.append(avgPos(vec))
+
+
+drift=[elem-posAll[0] for elem in posAll]
+dis=round(drift[-1],3)
+#plot drift
+plt.figure()
+plt.plot(range(0,len(drift)),drift,color="black")
+plt.title("$T_{1}=$"+str(T1)
+          +", $T_{1}/T_{2}=$"+str(a)+"/"+str(b)
+          # +"$\omega_{F}=0$"
+          +", $U=$"+str(U)
+          +", pumping = "+str(dis)+", band"+str(bandNum))
+plt.xlabel("$t/T$")
+
+plt.savefig(dirPrefix+"T1"+str(T1)
+            +"a"+str(a)+"b"+str(b)
+            # +"omegaF=0"
+            +"U"+str(U)
+            +"band"+str(bandNum)+"displacement.png")
+plt.close()
+
+#write pos
+posData=np.array([range(0,len(drift)),drift]).T
+
+dtFrame=pd.DataFrame(data=posData,columns=["t","drift"])
+dtFrame.to_csv(dirPrefix+"T1"+str(T1)
+            +"a"+str(a)+"b"+str(b)
+            # +"omegaF=0"
+            +"U"+str(U)
+            +"band"+str(bandNum)+"displacement.csv",index=False)
