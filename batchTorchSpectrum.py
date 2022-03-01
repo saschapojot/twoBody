@@ -115,8 +115,8 @@ def calcConsts(a,b,T1):
     T2=T1*b/a
     T=T1*b
     Q=int(T/stepLength)
-    if Q>200:
-        Q=200
+    if Q>400:
+        Q=400
     dt=T/Q
     return [Q,dt,T,T2]
 
@@ -327,17 +327,17 @@ def  calcEig(a,b,T1,U,Q,tensorHMatAll):
     maxVal = max(a, b)
     outDirPrefix = "./T1" + str(T1) + "/U" + str(U) + "/" + "a" + str(minVal) + "b" + str(maxVal) + "/"
     Path(outDirPrefix).mkdir(parents=True, exist_ok=True)
-    usablePath = ".usable/T1" + str(T1) + "/U" + str(U) + "/" + "a" + str(minVal) + "b" + str(maxVal) + "/"
+    usablePath = "./usable/T1" + str(T1) + "/U" + str(U) + "/" + "a" + str(minVal) + "b" + str(maxVal) + "/"
     phaseTable = dataAll[:, 2:]
     # col of distToBandBelow is dist of a band to the band below
     distToBandBelow = np.zeros(phaseTable.shape, dtype=float)
     for n in range(0, Ds):
-        distTmp = np.abs(phaseTable[:, n] - phaseTable[:, (n - 1) % Ds])
+        distTmp = phaseTable[:, n] - phaseTable[:, (n - 1) % Ds]
         distToBandBelow[:, n] = distTmp[:]  # deep copy
     # mod 2
-    for n in range(0, Ds):
-        distToBandBelow[:, n] = distToBandBelow[:, n] % 2
-
+    # for n in range(0, Ds):
+    #     distToBandBelow[:, n] = distToBandBelow[:, n] % 2
+    distToBandBelow[:, 0] = distToBandBelow[:, 0] + 2
     # col of distToBandAbove is dist of a band to the band above
     distToBandAbove = np.zeros(phaseTable.shape, dtype=float)
     for n in range(0, Ds):
@@ -466,61 +466,7 @@ def  calcEig(a,b,T1,U,Q,tensorHMatAll):
                 + "beta0.png")
     plt.close()
 
-    # #######statistics
-    # phaseTable = dataAll[:, 2:]
-    # # col of distToBandBelow is dist of a band to the band below
-    # distToBandBelow = np.zeros(phaseTable.shape, dtype=float)
-    # for n in range(0, Ds):
-    #     distTmp = np.abs(phaseTable[:, n] - phaseTable[:, (n - 1) % Ds])
-    #     distToBandBelow[:, n] = distTmp[:]  # deep copy
-    # # mod 2
-    # for n in range(0, Ds):
-    #     distToBandBelow[:, n] = distToBandBelow[:, n] % 2
-    #
-    # # col of distToBandAbove is dist of a band to the band above
-    # distToBandAbove = np.zeros(phaseTable.shape, dtype=float)
-    # for n in range(0, Ds):
-    #     distToBandAbove[:, n] = distToBandBelow[:, (n + 1) % Ds][:]  # deep copy
-    #
-    # # staticstics of dists
-    # minDistList = []
-    # avgDistList = []
-    # for n in range(0, Ds):
-    #     tmp1 = min(distToBandBelow[:, n])
-    #     tmp2 = min(distToBandAbove[:, n])
-    #     minDistList.append(min(tmp1, tmp2))
-    #
-    # for n in range(0, Ds):
-    #     vec1 = distToBandBelow[:, n][:]
-    #     vec2 = distToBandAbove[:, n][:]  # deep copy
-    #     vec = np.append(vec1, vec2)
-    #     avgDistList.append(np.mean(vec))
-    #
-    # # sort by descending order of minDistList
-    # indsMinDist = np.argsort(minDistList)[::-1]#col 0 of output table
-    # #col 1 of output table
-    # sortedByMinDist_MinDist1 = [minDistList[ind] for ind in indsMinDist]
-    # #col 2 of output table
-    # sortedByMinDist_AvgDist2 = [avgDistList[ind] for ind in indsMinDist]
-    # #sort by descending order pf avgDistList
-    # indsAvgDist=np.argsort(avgDistList)[::-1]#col 3 of output table
-    # # col4 of output table
-    # sortedByAvgDist_MinDist4=[minDistList[ind] for ind in indsAvgDist]
-    # #col 5 of output table
-    # sortedByAvgDist_AgvDist5=[avgDistList[ind] for ind in indsAvgDist]
-    #
-    # dataOut=np.array([indsMinDist,sortedByMinDist_MinDist1,sortedByMinDist_AvgDist2,
-    #                   indsAvgDist,sortedByAvgDist_MinDist4,sortedByAvgDist_AgvDist5]).T
-    #
-    # dtFrm=pd.DataFrame(data=dataOut,columns=["indsMinDist","minDist/pi","avgDist/pi",
-    #                                          "indsAvgDist","minDist/pi","avgDist/pi"])
-    # dtFrm.to_csv(outDirPrefix+"torchDistT1"+str(T1)
-    #          # +"omegaF=0"
-    #          +"a"+str(a)+"b"+str(b)
-    #          +"U"+str(U)
-    #          +".csv", index=False)
-    # print("Q="+str(Q))
-    #
+
 
     # del tensorHMatAll
     del reducedFlMatTensor
@@ -542,7 +488,7 @@ def  calcEig(a,b,T1,U,Q,tensorHMatAll):
 
 
 def run():
-    # tAllStart=datetime.now()
+    tAllStart=datetime.now()
     # for T1 in T1List:
     #     for U in UList:
     #         for onePair in abList:
@@ -562,10 +508,11 @@ def run():
     calcEig(a,b,T1,U,Q,tensorHMatAll)
     del tensorHMatAll
     gc.collect()
+    tAllEnd = datetime.now()
+    print("total time: ", tAllEnd - tAllStart)
+
     return
 
-    # tAllEnd=datetime.now()
-    # print("total time: ",tAllEnd-tAllStart)
 
 
 

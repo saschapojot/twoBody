@@ -115,8 +115,8 @@ def calcConsts(a,b,T1):
     T2=T1*b/a
     T=T1*b
     Q=int(T/stepLength)
-    if Q>200:
-        Q=200
+    if Q>400:
+        Q=400
     dt=T/Q
     return [Q,dt,T,T2]
 
@@ -215,21 +215,21 @@ def genHTensor(T1,T2,T,Q,dt,U):
     # Q, dt, T, T2=calcConsts(a,b,T1)
     inDataAll=[[q, m, dt, T1,T2,U] for q in range(1,Q+1) for  m in range(0,M)]
     pool0=Pool(threadNum)
-    # tHMatStart=datetime.now()
+    tHMatStart=datetime.now()
     ret0=pool0.map(genOneHMat,inDataAll)
     pool0.close()
     pool0.join()
-    # tHMatEnd=datetime.now()
-    # print("HMat time: ",tHMatEnd-tHMatStart)
-    # tInitStart=datetime.now()
+    tHMatEnd=datetime.now()
+    print("HMat time: ",tHMatEnd-tHMatStart)
+    tInitStart=datetime.now()
     tensorHMatAll=torch.zeros((Q,M,basisAll.Ns,basisAll.Ns),dtype=torch.cfloat)
     for itemTmp in ret0:
         q,m,matTmp=itemTmp
         position=Q-q
         tensorHMatAll[position,m,:,:]=torch.from_numpy(-1j*dt*matTmp)
 
-    # tInitEnd=datetime.now()
-    # print("initialization time: ",tInitEnd-tInitStart)
+    tInitEnd=datetime.now()
+    print("initialization time: ",tInitEnd-tInitStart)
     del ret0
     gc.collect()
     return tensorHMatAll
@@ -248,49 +248,49 @@ def  calcEig(a,b,T1,U,Q,tensorHMatAll):
     # UqTensorMat=UqTensorMat.cuda()
     # tensorHMatAll=tensorHMatAll.cuda()
     # torch.cuda.synchronize()
-    # tExpStart = datetime.now()
+    tExpStart = datetime.now()
     for q in range(0, Q):
         UqTensorMat[q, :, :, :] = tensorHMatAll[q, :, :, :].matrix_exp()
-    # tExpEnd = datetime.now()
+    tExpEnd = datetime.now()
     # torch.cuda.synchronize()
-    # print("exp time: ", tExpEnd - tExpStart)
+    print("exp time: ", tExpEnd - tExpStart)
     #########matrix products
     global prodUTensor
-    # tProdStart = datetime.now()
+    tProdStart = datetime.now()
     #set prodUTensor to id mat
     for j in range(0,M):
         prodUTensor[j,:,:]=torch.eye(basisAll.Ns,basisAll.Ns,dtype=torch.cfloat)
 
     for q in range(0,Q):
         prodUTensor=torch.bmm(prodUTensor,UqTensorMat[q,:,:,:])
-    # tProdEnd = datetime.now()
-    # print("prod time: ", tProdEnd - tProdStart)
+    tProdEnd = datetime.now()
+    print("prod time: ", tProdEnd - tProdStart)
     ##################reduced Floquet mats
 
     pool1=Pool(threadNum)
     betaNumAndPhiNumAll = [[m, r] for m in range(0, M) for r in range(0, L)]
-    # tReducedFlMatStart = datetime.now()
+    tReducedFlMatStart = datetime.now()
     ret1 = pool1.map(reducedFloquetMat, betaNumAndPhiNumAll)
     pool1.close()
     pool1.join()
-    # tReducedFlMatEnd = datetime.now()
-    # print("reduced Floquet mat time: ", tReducedFlMatEnd - tReducedFlMatStart)
+    tReducedFlMatEnd = datetime.now()
+    print("reduced Floquet mat time: ", tReducedFlMatEnd - tReducedFlMatStart)
     #######reduced Floquet matrices eig
     # m=0,1,...,M-1, r=0,1,...,L-1
     # index of matrix is mL+r
-    # tInitRedFlStart = datetime.now()
+    tInitRedFlStart = datetime.now()
     #tensor 2
     reducedFlMatTensor = torch.zeros((M * L, Ds, Ds), dtype=torch.cfloat)
     for itemTmp in ret1:
         m, r, rUMat = itemTmp
         reducedFlMatTensor[m * L + r, :, :] = torch.from_numpy(rUMat)
-    # tInitRedFlEnd = datetime.now()
-    # print("initialize reduced Floquet matrix tensor time: ", tInitRedFlEnd - tInitRedFlStart)
+    tInitRedFlEnd = datetime.now()
+    print("initialize reduced Floquet matrix tensor time: ", tInitRedFlEnd - tInitRedFlStart)
 
-    # tEigStart = datetime.now()
+    tEigStart = datetime.now()
     eigTensor, vecTensor = torch.linalg.eig(reducedFlMatTensor)
-    # tEigEnd = datetime.now()
-    # print("Eig time: ", tEigEnd - tEigStart)
+    tEigEnd = datetime.now()
+    print("Eig time: ", tEigEnd - tEigStart)
 
     #eigenphases and sort
     phasesAll = torch.angle(eigTensor)
@@ -324,7 +324,7 @@ def  calcEig(a,b,T1,U,Q,tensorHMatAll):
         vecDataAll.append(oneRow)
 
     vecDataAll = np.array(vecDataAll)
-    print(vecDataAll.shape)
+    # print(vecDataAll.shape)
     ##########data output
     minVal=min(a,b)
     maxVal=max(a,b)
@@ -357,7 +357,7 @@ def  calcEig(a,b,T1,U,Q,tensorHMatAll):
     plt.savefig(outDirPrefix+"torchT1" + str(T1)
                 # +"omegaF=0"
                 + "a" + str(a) + "b" + str(b)
-                + "U" + str(U)
+                + "U" + str(U)+"L"+str(L)
                 + "phi0.png")
     plt.close()
     # sort betaNum, such that the first L rows correspond to beta=0
@@ -387,7 +387,7 @@ def  calcEig(a,b,T1,U,Q,tensorHMatAll):
     plt.savefig(outDirPrefix+"torchT1" + str(T1)
                 # +"omegaF=0"
                 + "a" + str(a) + "b" + str(b)
-                + "U" + str(U)
+                + "U" + str(U)+"L"+str(L)
                 + "beta0.png")
     plt.close()
 
@@ -397,19 +397,20 @@ def  calcEig(a,b,T1,U,Q,tensorHMatAll):
     np.savetxt(outDirPrefix+"phasesAll"+ str(T1)
                 # +"omegaF=0"
                 + "a" + str(a) + "b" + str(b)
-                + "U" + str(U)+".csv",phaseTable,delimiter=",")
+                + "U" + str(U)+"L"+str(L)+".csv",phaseTable,delimiter=",")
     np.savetxt(outDirPrefix+"vecsAllT1"+str(T1)
                 # +"omegaF=0"
                 + "a" + str(a) + "b" + str(b)
-                + "U" + str(U)+".csv",vecDataAll,delimiter=",")
+                + "U" + str(U)+"L"+str(L)+".csv",vecDataAll,delimiter=",")
     # col of distToBandBelow is dist of a band to the band below
     distToBandBelow = np.zeros(phaseTable.shape, dtype=float)
     for n in range(0, Ds):
-        distTmp = np.abs(phaseTable[:, n] - phaseTable[:, (n - 1) % Ds])
+        distTmp = phaseTable[:, n] - phaseTable[:, (n - 1) % Ds]
         distToBandBelow[:, n] = distTmp[:]  # deep copy
-    # mod 2
-    for n in range(0, Ds):
-        distToBandBelow[:, n] = distToBandBelow[:, n] % 2
+    # # mod 2
+    # for n in range(0, Ds):
+    #     distToBandBelow[:, n] = distToBandBelow[:, n] % 2
+    distToBandBelow[:,0]=distToBandBelow[:,0]+2
 
     # col of distToBandAbove is dist of a band to the band above
     distToBandAbove = np.zeros(phaseTable.shape, dtype=float)
@@ -451,7 +452,7 @@ def  calcEig(a,b,T1,U,Q,tensorHMatAll):
     dtFrm.to_csv(outDirPrefix+"torchDistT1"+str(T1)
              # +"omegaF=0"
              +"a"+str(a)+"b"+str(b)
-             +"U"+str(U)
+             +"U"+str(U)+"L"+str(L)
              +".csv", index=False)
     # print("Q="+str(Q))
     del UqTensorMat
@@ -485,7 +486,7 @@ def run():
     #             calcEig(a,b,T1,U,Q,tensorHMatAll)
     #             del tensorHMatAll
     #             gc.collect()
-    aStr,bStr,T1Str,Ustr=[2,1,1,0.1]
+    aStr,bStr,T1Str,Ustr=[3,2,1,20]
     a=int(aStr)
     b=int(bStr)
     T1=float(T1Str)
