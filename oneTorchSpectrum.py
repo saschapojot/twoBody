@@ -23,7 +23,7 @@ V=2.5
 #be determined first by time interval length, which is set to 0.05
 #by default, and max Q=500
 subLatNum=3#sublattice number
-L=7##unit cell number, must be odd
+L=21##unit cell number, must be odd
 N=subLatNum*L #total sublattice number
 M=50#beta num
 betaValsAll=[2*np.pi*m/M for m in range(0,M)]#adiabatic parameter
@@ -115,8 +115,8 @@ def calcConsts(a,b,T1):
     T2=T1*b/a
     T=T1*b
     Q=int(T/stepLength)
-    if Q>400:
-        Q=400
+    if Q>200:
+        Q=200
     dt=T/Q
     return [Q,dt,T,T2]
 
@@ -486,7 +486,7 @@ def run():
     #             calcEig(a,b,T1,U,Q,tensorHMatAll)
     #             del tensorHMatAll
     #             gc.collect()
-    aStr,bStr,T1Str,Ustr=[3,2,1,20]
+    aStr,bStr,T1Str,Ustr=[1,2,1,10]
     a=int(aStr)
     b=int(bStr)
     T1=float(T1Str)

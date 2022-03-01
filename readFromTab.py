@@ -8,10 +8,10 @@ import pandas as pd
 
 #this script verifies if a wannier state can be constructed, and calculated Chern  number
 #then it calculates pumping
-a=2
-b=1
+a=1
+b=2
 T1=1.0
-U=0.1
+U=10.0
 Omega=2*np.pi/T1
 T2=T1*b/a
 omegaF=2*np.pi/T2
@@ -65,10 +65,10 @@ phiValsAll=[2*np.pi*r/L for r in range(0,L)]#bloch momentum
 basisAll=boson_basis_1d(N,Nb=2)
 basisAllInString=[basisAll.int_to_state(numTmp,bracket_notation=False) for numTmp in basisAll]
 Ds=int(basisAll.Ns/L)#momentum space dimension=seed states number
-
+print("Ds="+str(Ds))
 # print("M="+str(M)+", L="+str(L)+", Ns="+str(basisAll.Ns))
 #read vec from csv file
-bandNum=0
+bandNum=Ds-1
 vecTab=[]
 for index, row in inDat.iterrows():
     oneRow=[]
@@ -120,15 +120,17 @@ def strToVec(stateStr):
 #construct wannier state
 R=int(L/2)
 ws=np.zeros(basisAll.Ns,dtype=complex)
-for a in range(0,L):
-    phiaNum=stringToInt(sortedTab[a][1])
+for aa in range(0,L):
+    phiaNum=stringToInt(sortedTab[aa][1])
     phia=phiValsAll[phiaNum]
-    psiVeca=sortedTab[a][2:]
-    for b in range(0,Ds):
-        seedTmp=seedStatesAll[b][:]
+    psiVeca=sortedTab[aa][2:]
+    for bb in range(0,Ds):
+        seedTmp=seedStatesAll[bb][:]
         for j in range(0,L):
             vecTmp=strToVec(seedTmp)
-            ws+=vecTmp*psiVeca[b]*np.exp(1j*(j-R)*phia)
+            # print("bb="+str(bb))
+            # print(psiVeca[bb])
+            ws+=vecTmp*psiVeca[bb]*np.exp(1j*(j-R)*phia)
             seedTmp=coTranslation(seedTmp)
 
 ws/=np.linalg.norm(ws,ord=2)
@@ -138,7 +140,7 @@ ws/=np.linalg.norm(ws,ord=2)
 # for j in range(0,N):
 #     listTmp = [[1, j]]
 #     staticTmp = [["n", listTmp]]
-#     opTmp = hamiltonian(staticTmp, [], dtype=np.complex128, basis=basisAll)
+#     opTmp = hamiltonian(staticTmp, [], dtype=np.complex128, basis=basisAll,check_symm=False,check_pcon=False,check_herm=False)
 #     arrTmp = opTmp.tocsc()
 #     subLatOpList.append(arrTmp)
 #
@@ -235,7 +237,7 @@ newSubLatOpList=[]
 for j in range(0,newN):
     listTmp = [[1, j]]
     staticTmp = [["n", listTmp]]
-    opTmp = hamiltonian(staticTmp, [], dtype=np.complex128, basis=newBasisAll)
+    opTmp = hamiltonian(staticTmp, [], dtype=np.complex128, basis=newBasisAll,check_symm=False,check_pcon=False,check_herm=False)
     arrTmp = opTmp.tocsc()
     newSubLatOpList.append(arrTmp)
 
@@ -258,11 +260,12 @@ plt.figure()
 plt.plot(range(0,newN),magInit,color="black")
 plt.savefig(dirPrefix+"newws.png")
 plt.close()
+print("new init plotted")
 ############################################
 
 newPosVals=[[j,j]for j in range(0,newN)]
 newPosList=[["n",newPosVals]]
-newXOpr=hamiltonian(newPosList,[],basis=newBasisAll,dtype=np.complex128)
+newXOpr=hamiltonian(newPosList,[],basis=newBasisAll,dtype=np.complex128,check_pcon=False,check_herm=False,check_symm=False)
 newXMat=newXOpr.tocsc()/3
 
 def avgPos(vec):
@@ -294,7 +297,7 @@ MBeta=5000
 betaValsAll=[2*np.pi*m/MBeta for m in range(0,MBeta)]
 dataAll=[newWSVec]
 tEvStart=datetime.now()
-for beta in betaValsAll[:1]:
+for beta in betaValsAll:
     drivinfCoefs=[[V*np.cos(2*np.pi*alpha*m-beta),m] for m in range(0,newN)]
     dynPart=[["n",drivinfCoefs,driving,[]]]
     HTmp=hamiltonian(staticPart,dynPart,static_fmt="csr",dtype=np.complex128,basis=newBasisAll,check_herm=False,check_symm=False,check_pcon=False)
