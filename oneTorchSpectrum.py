@@ -10,8 +10,7 @@ import math
 from pathlib import Path
 import gc
 import sys
-#this script calculates band for a range of parameters
-#going to scan  T1, U, a, b
+#this script calculates band for T1, U, a, b
 
 #consts
 alpha=1/3
@@ -118,6 +117,8 @@ def calcConsts(a,b,T1):
     if Q>200:
         Q=200
     dt=T/Q
+    print("Q="+str(Q))
+    print("dt="+str(dt))
     return [Q,dt,T,T2]
 
 
@@ -291,7 +292,7 @@ def  calcEig(a,b,T1,U,Q,tensorHMatAll):
     eigTensor, vecTensor = torch.linalg.eig(reducedFlMatTensor)
     tEigEnd = datetime.now()
     print("Eig time: ", tEigEnd - tEigStart)
-
+    tOutStart=datetime.now()
     #eigenphases and sort
     phasesAll = torch.angle(eigTensor)
 
@@ -328,7 +329,7 @@ def  calcEig(a,b,T1,U,Q,tensorHMatAll):
     ##########data output
     minVal=min(a,b)
     maxVal=max(a,b)
-    outDirPrefix="./OneBandT1"+str(T1)+"/U"+str(U)+"/"+"a"+str(minVal)+"b"+str(maxVal)+"/"
+    outDirPrefix="./OneBandT1"+str(T1)+"/U"+str(U)+"/"+"a"+str(minVal)+"b"+str(maxVal)+"/"#+"omegaF0/
     Path(outDirPrefix).mkdir(parents=True, exist_ok=True)
     # sort phiNum, such that the first M rows correspond to phi=0
     sortedByPhiDataAll = np.array(sorted(dataAll, key=lambda row: row[1]))
@@ -395,11 +396,11 @@ def  calcEig(a,b,T1,U,Q,tensorHMatAll):
     phaseTable = dataAll[:, 2:]
 
     np.savetxt(outDirPrefix+"phasesAll"+ str(T1)
-                # +"omegaF=0"
+                # +"omegaF0"
                 + "a" + str(a) + "b" + str(b)
                 + "U" + str(U)+"L"+str(L)+".csv",phaseTable,delimiter=",")
     np.savetxt(outDirPrefix+"vecsAllT1"+str(T1)
-                # +"omegaF=0"
+                # +"omegaF0"
                 + "a" + str(a) + "b" + str(b)
                 + "U" + str(U)+"L"+str(L)+".csv",vecDataAll,delimiter=",")
     # col of distToBandBelow is dist of a band to the band below
@@ -450,11 +451,13 @@ def  calcEig(a,b,T1,U,Q,tensorHMatAll):
     dtFrm=pd.DataFrame(data=dataOut,columns=["indsMinDist","minDist/pi","avgDist/pi",
                                              "indsAvgDist","minDist/pi","avgDist/pi"])
     dtFrm.to_csv(outDirPrefix+"torchDistT1"+str(T1)
-             # +"omegaF=0"
+             # +"omegaF0"
              +"a"+str(a)+"b"+str(b)
              +"U"+str(U)+"L"+str(L)
              +".csv", index=False)
     # print("Q="+str(Q))
+    tOutEnd=datetime.now()
+    print("output time: ",tOutEnd-tOutStart)
     del UqTensorMat
 
     # del tensorHMatAll
@@ -486,7 +489,7 @@ def run():
     #             calcEig(a,b,T1,U,Q,tensorHMatAll)
     #             del tensorHMatAll
     #             gc.collect()
-    aStr,bStr,T1Str,Ustr=[1,2,1,10]
+    aStr,bStr,T1Str,Ustr=[8,7,1,20]
     a=int(aStr)
     b=int(bStr)
     T1=float(T1Str)
