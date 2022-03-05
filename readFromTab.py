@@ -8,10 +8,11 @@ import pandas as pd
 
 #this script verifies if a wannier state can be constructed, and calculated Chern  number
 #then it calculates pumping
-a=1
-b=2
+a=2
+b=1
 T1=1.0
-U=10.0
+U=0.1
+bandNum=0
 Omega=2*np.pi/T1
 T2=T1*b/a
 omegaF=2*np.pi/T2
@@ -68,7 +69,7 @@ Ds=int(basisAll.Ns/L)#momentum space dimension=seed states number
 print("Ds="+str(Ds))
 # print("M="+str(M)+", L="+str(L)+", Ns="+str(basisAll.Ns))
 #read vec from csv file
-bandNum=Ds-1
+
 vecTab=[]
 for index, row in inDat.iterrows():
     oneRow=[]
@@ -79,10 +80,25 @@ for index, row in inDat.iterrows():
     vecTab.append(oneRow)
 
 vecTab=np.array(vecTab)
-
-sortedTab=sorted(vecTab,key=lambda row: row[0])[:L]
 #sort by betaNum, such that the first L arrays
 #correspond to beta=0, take the first L arrays
+sortedTab=sorted(vecTab,key=lambda row: row[0])[:L]
+
+##phase smoothing
+initVecs=np.zeros((L+1,Ds),dtype=complex)
+for j in range(0,L):
+    initVecs[j,:]=sortedTab[j][2:][:]#deep copy
+initVecs[L,:]=sortedTab[0][2:][:]#deep copy
+for j in range(0,L):
+    dThetaTmp=np.angle(np.vdot(initVecs[j,:],initVecs[j+1,:]))
+    initVecs[j+1,:]*=np.exp(-1j*dThetaTmp)
+thetaTot=np.angle(np.vdot(initVecs[0,:],initVecs[L,:]))
+for j in range(0,L):
+    initVecs[j,:]*=np.exp(-1j*j*thetaTot/L)
+
+for j in range(0,L):
+    sortedTab[j][2:]=initVecs[j,:][:]#deep copy
+
 
 
 def coTranslation(stateStr):
@@ -166,6 +182,7 @@ ws/=np.linalg.norm(ws,ord=2)
 ###################calculates chern number
 #construct a tensor of vectors
 vecFromBandTensor=np.zeros((M,L,Ds),dtype=complex)
+
 for oneArray in vecTab:
     betaNum=stringToInt(oneArray[0])
     phiNum=stringToInt(oneArray[1])
@@ -248,6 +265,7 @@ def newOnSiteMagnitude(vec):
     :return:
     """
     mag=[]
+
     for arrTmp in newSubLatOpList:
         xTmp=arrTmp.dot(vec)
         yTmp=vec.conj().T.dot(xTmp)
@@ -275,7 +293,7 @@ def avgPos(vec):
     :return: avg position in lattice number
     """
     xTmp=newXMat.dot(vec)
-    return np.real(vec.conj().T.dot(xTmp))
+    return np.real(vec.conj().T.dot(xTmp))/2
 
 
 #construct real space Hamiltonian for evolution
@@ -293,7 +311,7 @@ def driving(t):
     return np.cos(Omega*t)
 
 
-MBeta=5000
+MBeta=4000
 betaValsAll=[2*np.pi*m/MBeta for m in range(0,MBeta)]
 dataAll=[newWSVec]
 tEvStart=datetime.now()
@@ -310,6 +328,8 @@ for beta in betaValsAll:
 tEvEnd=datetime.now()
 print("evolution time :", tEvEnd-tEvStart)
 
+
+################################################output
 #after evolution plot final wavepacket
 psiLast=dataAll[-1]
 magLast=newOnSiteMagnitude(psiLast)
@@ -340,7 +360,7 @@ plt.savefig(dirPrefix+"T1"+str(T1)
             +"a"+str(a)+"b"+str(b)
             # +"omegaF=0"
             +"U"+str(U)
-            +"band"+str(bandNum)+"displacement.png")
+            +"band"+str(bandNum)+"displacementSize"+str(newL)+".png")
 plt.close()
 
 #write pos
@@ -351,4 +371,4 @@ dtFrame.to_csv(dirPrefix+"T1"+str(T1)
             +"a"+str(a)+"b"+str(b)
             # +"omegaF=0"
             +"U"+str(U)
-            +"band"+str(bandNum)+"displacement.csv",index=False)
+            +"band"+str(bandNum)+"displacementSize"+str(newL)+".csv",index=False)
