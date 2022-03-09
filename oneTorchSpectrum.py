@@ -31,7 +31,6 @@ phiValsAll=[2*np.pi*r/L for r in range(0,L)]#bloch momentum
 basisAll=boson_basis_1d(N,Nb=2)
 basisAllInString=[basisAll.int_to_state(numTmp,bracket_notation=False) for numTmp in basisAll]
 Ds=int(basisAll.Ns/L)#momentum space dimension=seed states number
-
 threadNum=24
 stepLength=0.05
 
@@ -395,7 +394,7 @@ def  calcEig(a,b,T1,U,Q,tensorHMatAll):
     #######statistics
     phaseTable = dataAll[:, 2:]
 
-    np.savetxt(outDirPrefix+"phasesAll"+ str(T1)
+    np.savetxt(outDirPrefix+"phasesAllT1"+ str(T1)
                 # +"omegaF0"
                 + "a" + str(a) + "b" + str(b)
                 + "U" + str(U)+"L"+str(L)+".csv",phaseTable,delimiter=",")
@@ -489,7 +488,7 @@ def run():
     #             calcEig(a,b,T1,U,Q,tensorHMatAll)
     #             del tensorHMatAll
     #             gc.collect()
-    aStr,bStr,T1Str,Ustr=[8,7,1,20]
+    aStr,bStr,T1Str,Ustr=[9,4,1,10]
     a=int(aStr)
     b=int(bStr)
     T1=float(T1Str)
