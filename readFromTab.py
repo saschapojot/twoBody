@@ -4,15 +4,15 @@ from quspin.operators import hamiltonian
 from quspin.basis import boson_basis_1d
 from datetime import datetime
 import pandas as pd
-
+from pathlib import Path
 
 #this script verifies if a wannier state can be constructed, and calculated Chern  number
 #then it calculates pumping
-a=2
-b=1
+a=1
+b=2
 T1=1.0
-U=0.1
-bandNum=0
+U=10.0
+
 Omega=2*np.pi/T1
 T2=T1*b/a
 omegaF=2*np.pi/T2
@@ -28,8 +28,8 @@ minVal = min(a, b)
 maxVal = max(a, b)
 dirPrefix="./OneBandT1"+str(T1)+"/U"+str(U)+"/"+"a"+str(minVal)+"b"+str(maxVal)+"/"
 inVecCSVFileName=dirPrefix+"vecsAllT1"+str(T1)+"a"+str(a)+"b"+str(b)+"U"+str(U)+"L"+str(L)+".csv"
-
-
+dirOutPrefix=dirPrefix+"long/"
+Path(dirOutPrefix).mkdir(parents=True,exist_ok=True)
 
 def stringToInt(str):
     #convert str to index
@@ -59,6 +59,8 @@ betaIndsAll=stringVecToInt(inDat.iloc[:,0])
 phiIndsAll=stringVecToInt(inDat.iloc[:,1])
 M=max(betaIndsAll)+1
 L=max(phiIndsAll)+1
+
+
 N=subLatNum*L #total sublattice number
 betaValsAll=[2*np.pi*m/M for m in range(0,M)]#adiabatic parameter
 phiValsAll=[2*np.pi*r/L for r in range(0,L)]#bloch momentum
@@ -67,6 +69,8 @@ basisAll=boson_basis_1d(N,Nb=2)
 basisAllInString=[basisAll.int_to_state(numTmp,bracket_notation=False) for numTmp in basisAll]
 Ds=int(basisAll.Ns/L)#momentum space dimension=seed states number
 print("Ds="+str(Ds))
+bandNum=0
+filePrefix="T1"+str(T1)+"a"+str(a)+"b"+str(b)+"U"+str(U)+"band"+str(bandNum)
 # print("M="+str(M)+", L="+str(L)+", Ns="+str(basisAll.Ns))
 #read vec from csv file
 
@@ -276,7 +280,7 @@ newWSVec=newWannierVec()
 magInit=newOnSiteMagnitude(newWSVec)
 plt.figure()
 plt.plot(range(0,newN),magInit,color="black")
-plt.savefig(dirPrefix+"newws.png")
+plt.savefig(dirOutPrefix+filePrefix+"newws.png")
 plt.close()
 print("new init plotted")
 ############################################
@@ -300,6 +304,7 @@ def avgPos(vec):
 
 #static part
 
+
 onSite2=[[U/2,m,m] for m in range(0,newN)]
 onSite1=[[-U/2,m] for m in range(0,newN)]
 hoppingCoef=[[J/2,m,(m+1)%newN] for m in range(0,newN)]#same for +- and -+
@@ -311,7 +316,7 @@ def driving(t):
     return np.cos(Omega*t)
 
 
-MBeta=4000
+MBeta=5000
 betaValsAll=[2*np.pi*m/MBeta for m in range(0,MBeta)]
 dataAll=[newWSVec]
 tEvStart=datetime.now()
@@ -335,7 +340,7 @@ psiLast=dataAll[-1]
 magLast=newOnSiteMagnitude(psiLast)
 plt.figure()
 plt.plot(range(0,newN),magLast,color="black")
-plt.savefig(dirPrefix+"last.png")
+plt.savefig(dirOutPrefix+filePrefix+"last.png")
 plt.close()
 
 #calculates drift
@@ -356,19 +361,11 @@ plt.title("$T_{1}=$"+str(T1)
           +", pumping = "+str(dis)+", band"+str(bandNum))
 plt.xlabel("$t/T$")
 
-plt.savefig(dirPrefix+"T1"+str(T1)
-            +"a"+str(a)+"b"+str(b)
-            # +"omegaF=0"
-            +"U"+str(U)
-            +"band"+str(bandNum)+"displacementSize"+str(newL)+".png")
+plt.savefig(dirOutPrefix+filePrefix+"displacementSize"+str(newL)+".png")
 plt.close()
 
 #write pos
 posData=np.array([range(0,len(drift)),drift]).T
 
 dtFrame=pd.DataFrame(data=posData,columns=["t","drift"])
-dtFrame.to_csv(dirPrefix+"T1"+str(T1)
-            +"a"+str(a)+"b"+str(b)
-            # +"omegaF=0"
-            +"U"+str(U)
-            +"band"+str(bandNum)+"displacementSize"+str(newL)+".csv",index=False)
+dtFrame.to_csv(dirOutPrefix+filePrefix+"displacementSize"+str(newL)+".csv",index=False)
