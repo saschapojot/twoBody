@@ -7,6 +7,7 @@ import scipy.sparse.linalg as ssplin
 from multiprocessing import Pool
 import torch
 import gc
+import pandas as pd
 #script for obc band using pytorch
 #consts
 alpha=1/3
@@ -232,6 +233,7 @@ def partitionVecs():
         vecsTmp=vecTensor[m]
         for i,  onePhase in enumerate(phasesTmp):
             oneVec=np.array(vecsTmp[:,i])
+            onePhase = float(onePhase)
             stateNum=selectEdgeStates(oneVec)
             if stateNum==0:
                 betaLeft.append(2*m/M)
@@ -250,8 +252,27 @@ def partitionVecs():
 
 betaLeft,betaRight,betaMiddle, phasesLeft, phasesRight,phasesMiddle=partitionVecs()
 
+lenMax=sorted([len(betaLeft),len(betaRight),len(betaMiddle)])[-1]
+#fill with nan so that vectors have the same length
+if len(betaLeft)<lenMax:
+    betaLeft.extend([np.nan]*(lenMax-len(betaLeft)))
+    phasesLeft.extend([np.nan]*(lenMax-len(phasesLeft)))
+if len(betaRight)<lenMax:
+    betaRight.extend([np.nan]*(lenMax-len(betaRight)))
+    phasesRight.extend([np.nan]*(lenMax-len(phasesRight)))
+if len(betaMiddle)<lenMax:
+    betaMiddle.extend([np.nan]*(lenMax-len(betaMiddle)))
+    phasesMiddle.extend([np.nan]*(lenMax-len(phasesMiddle)))
 
 
+dtFrm=pd.DataFrame({"betaLeft":betaLeft,"phasesLeft":phasesLeft,"betaRight":betaRight,"phasesRight":phasesRight,
+                    "betaMiddle":betaMiddle,"phasesMiddle":phasesMiddle})
+
+dtFrm.to_csv("torchObcT1"+str(T1)
+             # +"omegaF0"
+             +"a"+str(a)+"b"+str(b)
+             +"U"+str(U)+"L"+str(L)
+             +".csv", index=False)
 
 
 
