@@ -1,33 +1,33 @@
 import  numpy as np
-import matplotlib.pyplot as plt
+
 from quspin.operators import hamiltonian
 from quspin.basis import boson_basis_1d
 from datetime import datetime
 import scipy.sparse.linalg as ssplin
 from multiprocessing import Pool
-
+import pandas as pd
 
 #script for obc band
 #consts
 alpha=1/3
-T1=2
+T1=1
 J=2.5
 V=2.5
 Omega=2*np.pi/T1
 
 
-a=5
-b=2
+a=1
+b=1
 T2=T1*b/a
 omegaF=2*np.pi/T2
 T=T1*b#total small time
 Q=100#small time interval number
 dt=T/Q
-U=30
+U=1
 tValsAll=[dt*q for q in range(1,Q+1)]
 
 q=3#sublattice number
-L=11##unit cell number, must be odd
+L=21##unit cell number, must be odd
 N=q*L #total sublattice number
 M=50#beta num
 betaValsAll=[2*np.pi*m/M for m in range(0,M)]#adiabatic parameter
@@ -209,21 +209,50 @@ for itemTmp in retAll:
             pltPhaseMid.append(midPairTmp[0]/np.pi)
 
 
-sVal=2
-plt.figure()
-plt.title("$T_{1}=$"+str(T1)
-          # +", $\omega_{F}=0$"
-         + ", $T_{1}/T_{2}=$"+str(a)+"/"+str(b)
-          )
+lenMax=sorted([len(pltBetaLeft),len(pltBetaLeft),len(pltBetaMid)])[-1]
+if len(pltBetaLeft)<lenMax:
+    pltBetaLeft.extend([np.nan]*(lenMax-len(pltBetaLeft)))
+    pltPhaseLeft.extend([np.nan]*(lenMax-len(pltPhaseLeft)))
 
+if len(pltBetaLeft)<lenMax:
+    pltBetaLeft.extend([np.nan]*(lenMax-len(pltBetaLeft)))
+    pltPhaseLeft.extend([np.nan]*(lenMax-len(pltPhaseLeft)))
+if len(pltBetaMid)<lenMax:
+    pltBetaMid.extend([np.nan]*(lenMax-len(pltBetaMid)))
+    pltPhaseMid.extend([np.nan]*(lenMax-len(pltPhaseMid)))
 
-plt.scatter(pltBetaLeft,pltPhaseLeft,color="magenta",marker=".",s=sVal,label="left")
-plt.scatter(pltBetaRight,pltPhaseRight,color="cyan",marker=".",s=sVal,label="right")
-plt.scatter(pltBetaMid,pltPhaseMid,color="black",marker=".",s=sVal,label="bulk")
-plt.xlabel("$\\beta/\pi$")
-plt.ylabel("eigenphase/\pi")
-plt.legend()
-plt.savefig("obcT1"+str(T1)
-            # +"omegaF=0"
-            +"a"+str(a)+"b"+str(b)+".png"
-             )
+dataOut=np.array([pltBetaLeft,pltPhaseLeft,pltBetaRight,pltPhaseRight,pltBetaMid,pltPhaseMid]).T
+dtFrm=pd.DataFrame(data=dataOut,columns=["betaLeft","phasesLeft","betaRight","phasesRight","betaMiddle","phasesMiddle"])
+
+dtFrm.to_csv("obcT1"+str(T1)+"U"+str(U)+"a"+str(a)+"b"+str(b)+".csv")
+
+# sVal=2
+# fig=plt.figure()
+# ax=fig.add_subplot(111)
+# plt.title("$T_{1}=$"+str(T1)
+#           # +", $\omega_{F}=0$"
+#          + ", $T_{1}/T_{2}=$"+str(a)+"/"+str(b)
+#           +", $U=$"+str(U)
+#           )
+#
+# ftSize=16
+# dirPrefix="./plotsPumping/T1"+str(T1)+"U"+str(U)+"a"+str(a)+"b"+str(b)+"/"
+# plt.scatter(pltBetaLeft,pltPhaseLeft,color="magenta",marker=".",s=sVal,label="left")
+# plt.scatter(pltBetaRight,pltPhaseRight,color="cyan",marker=".",s=sVal,label="right")
+# plt.scatter(pltBetaMid,pltPhaseMid,color="black",marker=".",s=sVal,label="bulk")
+# plt.xlabel("$\\beta/\pi$",fontsize=ftSize)
+# plt.ylabel("eigenphase/\pi",fontsize=ftSize)
+# plt.xticks([0,2], fontsize=ftSize )
+# plt.xlim((0,2))
+# plt.ylim((-1,1))
+# plt.yticks([-1,0,1],fontsize=ftSize )
+# lgnd =ax.legend(loc='best', bbox_to_anchor=(1.15, 1.2),fontsize=ftSize)
+# for handle in lgnd.legendHandles:
+#     handle.set_sizes([25.0])
+# plt.savefig(dirPrefix+"obcT1"+str(T1)
+#             # +"omegaF=0"
+#             +"a"+str(a)+"b"+str(b)
+#             +"U"+str(U)
+#             +".png"
+#              )
+# plt.close()
