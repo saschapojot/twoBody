@@ -20,9 +20,9 @@ V=2.5
 
 
 q=3#sublattice number
-L=21##unit cell number, must be odd
+L=7##unit cell number, must be odd
 N=q*L #total sublattice number
-M=50#beta num
+M=200#beta num
 betaValsAll=[2*np.pi*m/M for m in range(0,M)]#adiabatic parameter
 
 
@@ -30,7 +30,7 @@ betaValsAll=[2*np.pi*m/M for m in range(0,M)]#adiabatic parameter
 basisAll=boson_basis_1d(N,Nb=2)
 basisAllInString=[basisAll.int_to_state(numTmp,bracket_notation=False) for numTmp in basisAll]
 Ds=int(basisAll.Ns/L)#momentum space dimension=seed states number
-weight=0.6
+weight=0.7
 localLength=int(N*0.15)
 threadNum=24
 stepLength=0.05
@@ -213,7 +213,7 @@ def selectEdgeStates(vec):
     else:
         return 2
 
-a,b,T1,U=[1,1,1.0,1.0]
+a,b,T1,U=[3,2,2,20]
 
 def partitionVecs():
     Q,dt,T,T2=calcConsts(a,b,T1)
@@ -276,24 +276,25 @@ dtFrm.to_csv("torchObcT1"+str(T1)
 
 
 
-sVal=2
-plt.figure()
-plt.title("$T_{1}=$"+str(T1)
-          # +", $\omega_{F}=0$"
-         + ", $T_{1}/T_{2}=$"+str(a)+"/"+str(b)
-          +", $U=$"+str(U)
-          )
-
-plt.scatter(betaLeft,phasesLeft,color="magenta",marker=".",s=sVal,label="left")
-plt.scatter(betaRight,phasesRight,color="cyan",marker=".",s=sVal,label="right")
-plt.scatter(betaMiddle,phasesMiddle,color="black",marker=".",s=sVal,label="bulk")
-plt.xlabel("$\\beta/\pi$")
-plt.ylabel("eigenphase/\pi")
-plt.legend()
-plt.savefig("obcT1"+str(T1)
-            # +"omegaF=0"
-            +"a"+str(a)+"b"+str(b)
-            +"U"+str(U)
-            +".png"
-             )
-plt.close()
+# sVal=2
+# plt.figure()
+# plt.title("$T_{1}=$"+str(int(T1))
+#           # +", $\omega_{F}=0$"
+#          + ", $T_{1}/T_{2}=$"+str(a)+"/"+str(b)
+#           +", $U=$"+str(int(U))
+#           )
+# ftSize=16
+# plt.scatter(betaLeft,phasesLeft,color="magenta",marker=".",s=sVal,label="left")
+# plt.scatter(betaRight,phasesRight,color="cyan",marker=".",s=sVal,label="right")
+# plt.scatter(betaMiddle,phasesMiddle,color="black",marker=".",s=sVal,label="bulk")
+# plt.xlabel("$\\beta/\pi$",fontsize=ftSize,labelpad=0.5)
+# plt.ylabel("eigenphase/$\pi$",fontsize=ftSize,labelpad=0.5)
+# plt.legend()
+# plt.savefig("obcT1"+str(T1)
+#             # +"omegaF=0"
+#             +"a"+str(a)+"b"+str(b)
+#             +"U"+str(U)
+#              +"L"+str(L)
+#             +".png"
+#              )
+# plt.close()
