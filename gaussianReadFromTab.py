@@ -11,7 +11,7 @@ from pathlib import Path
 a=1
 b=1
 T1=1.0
-U=1.0
+U=2.0
 
 Omega=2*np.pi/T1
 T2=T1*b/a
@@ -22,7 +22,7 @@ alpha=1/3
 J=2.5
 V=2.5
 L=21
-sigma=0.5#gaussian width
+sigma=0.7#gaussian width
 subLatNum=3#sublattice number
 #read from csv file to determine M, L, etc.
 minVal = min(a, b)
@@ -135,7 +135,7 @@ def strToVec(stateStr):
     psi[i0]=1
     return psi
 
-#construct wannier state
+#construct gaussian state
 R=int(L/2)
 ws=np.zeros(basisAll.Ns,dtype=complex)
 for aa in range(0,L):
@@ -148,7 +148,7 @@ for aa in range(0,L):
             vecTmp=strToVec(seedTmp)
             # print("bb="+str(bb))
             # print(psiVeca[bb])
-            ws+=vecTmp*psiVeca[bb]*np.exp(1j*(j-R)*phia)*np.exp(-sigma**2*phia**2)
+            ws+=vecTmp*psiVeca[bb]*np.exp(1j*(j-R)*phia)*np.exp(-phia**2/(4*sigma**2))
             seedTmp=coTranslation(seedTmp)
 
 ws/=np.linalg.norm(ws,ord=2)
@@ -313,7 +313,7 @@ def driving(t):
     return np.cos(Omega*t)
 
 
-MBeta=1000
+MBeta=1200
 betaValsAll=[2*np.pi*m/MBeta for m in range(0,MBeta)]
 dataAll=[newWSVec]
 tEvStart=datetime.now()
@@ -324,7 +324,7 @@ for beta in betaValsAll:
     psiCurr=dataAll[-1]
     tStart=0
     tEndList=[T]
-    psiNext=HTmp.evolve(psiCurr,tStart,tEndList,eom="SE",solver_name="dop853",verbose=False,iterate=False,imag_time=False)[:,0]
+    psiNext=HTmp.evolve(psiCurr,tStart,tEndList,eom="SE",solver_name="dop853",verbose=False,iterate=False,imag_time=False,max_step=0.00025,atol=1e-10,rtol=1e-10)[:,0]
     dataAll.append(psiNext)
 
 tEvEnd=datetime.now()
@@ -362,7 +362,7 @@ plt.savefig(outDir+"T1"+str(T1)
             +"a"+str(a)+"b"+str(b)
             # +"omegaF=0"
             +"U"+str(U)
-            +"band"+str(bandNum)+"displacementSize"+str(newL)+".png")
+            +"band"+str(bandNum)+"displacement"+".png")
 plt.close()
 
 #write pos
@@ -373,4 +373,4 @@ dtFrame.to_csv(outDir+"T1"+str(T1)
             +"a"+str(a)+"b"+str(b)
             # +"omegaF=0"
             +"U"+str(U)
-            +"band"+str(bandNum)+"displacementSize"+str(newL)+".csv",index=False)
+            +"band"+str(bandNum)+"displacement"+".csv",index=False)
