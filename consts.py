@@ -14,7 +14,9 @@ import copy
 L = 19
 N = 2 * L
 J = 1
-
+x=0.1
+y=0.2
+#values on experimental branch
 #delta_0
 d0 = 0.8
 
@@ -23,11 +25,12 @@ D0 = 2
 
 U = 10
 
+V=0.0001#driving strength
 omega = 0.003
 omegaF =0.005
 phi0 = 0
 
-n0=100
+n0=1000
 #driving params
 Omega=n0*omega
 n1=1
@@ -35,15 +38,28 @@ alpha=0
 A=U*5
 #############
 #quench parameters
-B1=3
+B1=0.001
 B2=5
+nq=1000
+Omegaq=nq*omega
+Tq=2*np.pi/Omegaq
+
 ########
 basisAll = boson_basis_1d(N, Nb=2)
 
+
 T = 2 * np.pi / omega
 
-tTot =  3*T
-Q =500
+tTot =  3*T#total pumping time
+
+Q =500#pumping time step
+QFlq=50
+#################
+#Floquet
+TFlq=2*np.pi/Omega
+deltat=TFlq/QFlq#time step for calculation of Floquet operator
+######################
+
 dt = tTot / Q
 
 sgm=2
@@ -74,7 +90,7 @@ sgm=2
 posVals=[[j,j]for j in range(0,N)]
 posList=[["n",posVals]]
 xOpr=hamiltonian(posList,[],basis=basisAll,dtype=np.complex128)
-xMat=xOpr.toarray()/2
+xMat=xOpr.tocsc()/2
 # E,V=np.linalg.eigh(xMat)
 # print(V)
 # print(E)
