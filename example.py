@@ -23,7 +23,9 @@ betaValsAll=[2*np.pi*m/M for m in range(0,M)]#adiabatic parameter
 phiValsAll=[2*np.pi*r/L for r in range(0,L)]#bloch momentum
 #basis
 basisAll=boson_basis_1d(N,Nb=2)
+
 basisAllInString=[basisAll.int_to_state(numTmp,bracket_notation=False) for numTmp in basisAll]
+
 Ds=int(basisAll.Ns/L)#momentum space dimension=seed states number
 
 threadNum=24
