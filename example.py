@@ -138,30 +138,37 @@ def HMat(dataList):
     onSite1 = [[-U / 2, j] for j in range(0, N)]
 
     hListTmp = [["+-", hoppingPM], ["-+", hoppingMP], ["n", onsiteDriving], ["nn", onSite2], ["n", onSite1]]
-    HTmp = hamiltonian(hListTmp, [], dtype=np.complex128, basis=basisAll,check_pcon=False,check_symm=False,check_herm=False,static_fmt='csr',)
-    return [q, m, HTmp.toarray()]
+    HTmp = hamiltonian(hListTmp, [], dtype=np.complex128, basis=basisAll,check_pcon=False,check_symm=False,check_herm=False,static_fmt='csr')
+    return [q, m, HTmp]
 
+q=1
+m=2
+dt=0.1
+T1=1
+T2=4
+U=0.1
 
+print(HMat([q,m,dt,T1,T2,U]))
 
-def reducedFloquetMat(betaNumphiNum):
-    """
-
-    :param betaNum: beta index
-    :param phiNum: phi index
-    :return:
-    """
-    betaNum,phiNum=betaNumphiNum
-    retMat=np.zeros((Ds,Ds),dtype=complex)
-    UMatTmp=prodUTensor[betaNum,:,:].numpy()
-    for j in range(0,Ds):
-        for l in range(0,Ds):
-            #left vec has one elem 1, the rest are 0, therefore it selects a row
-            leftVecInd=basisAll.index(seedStatesAll[j])
-            rightVec=momentumEigVecsAll[phiNum][l]
-            vecTmp=UMatTmp[leftVecInd,:]
-            retMat[j,l]=np.dot(vecTmp,rightVec)
-
-    return [betaNum,phiNum,retMat]
+# def reducedFloquetMat(betaNumphiNum):
+#     """
+#
+#     :param betaNum: beta index
+#     :param phiNum: phi index
+#     :return:
+#     """
+#     betaNum,phiNum=betaNumphiNum
+#     retMat=np.zeros((Ds,Ds),dtype=complex)
+#     UMatTmp=prodUTensor[betaNum,:,:].numpy()
+#     for j in range(0,Ds):
+#         for l in range(0,Ds):
+#             #left vec has one elem 1, the rest are 0, therefore it selects a row
+#             leftVecInd=basisAll.index(seedStatesAll[j])
+#             rightVec=momentumEigVecsAll[phiNum][l]
+#             vecTmp=UMatTmp[leftVecInd,:]
+#             retMat[j,l]=np.dot(vecTmp,rightVec)
+#
+#     return [betaNum,phiNum,retMat]
 
 
 #
